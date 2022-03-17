@@ -1,5 +1,6 @@
 apt:
   - doxygen
+  - python3-termcolor
 repositories:
   robotics-toolbox-python:
     type: git
