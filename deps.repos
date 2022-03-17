@@ -1,0 +1,20 @@
+apt:
+  - doxygen
+repositories:
+  robotics-toolbox-python:
+    type: git
+    url: git@github.com:Betancourt20/robotics-toolbox-python.git
+    version: kinova_jaco2
+  swift:
+     type: git
+     url: https://github.com/jhavl/swift.git
+     version: master
+  spatialmath-python:
+     type: git
+     url: https://github.com/petercorke/spatialmath-python.git
+     version: master
+  spatialgeometry:
+     type: git
+     url: https://github.com/jhavl/spatialgeometry.git
+     version: main
+
