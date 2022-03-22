@@ -1,4 +1,3 @@
-
 import numpy as np
 import math
 import roboticstoolbox as rtb
@@ -19,14 +18,15 @@ p560nf = p560.nofriction()
 
 # For time simulation
 tfin = 3
-h = 0.01
-N = math.ceil(tfin/h)
+ts = 0.01
+
 # Initial state conditions
 q = p560.qn
 qd = np.zeros((6,))
 qdd = np.zeros((6,))
 
 # Desired Values
+# Td = SE3(0.3963, 0.1500, 0.6574)@SE3.Ry(np.pi/2) # This put some errors, I dont know why ?
 Td = transl(0.3963, -0.1501, 0.6575)@troty(np.pi/2)  # desired Homogen matrix
 
 # Control variables
@@ -39,14 +39,13 @@ kps = np.array([luvs, luvs, luvs, luvs, luvs, luvs])
 Kp = np.diag(kps)
 
 
+# Function to compute the torques
 def tr2delta_explicit(T0, T1):
     T0 = np.array(T0)
     T1 = np.array(T1)
     delta = np.array([T1[:3, 3]-T0[:3, 3], 0.5*(np.cross(T0[:3, 0], T1[:3, 0])
                                                 + np.cross(T0[:3, 1], T1[:3, 1]) + np.cross(T0[:3, 2], T1[:3, 2]))])
     return delta
-
-# Function to compute the torques
 
 
 def tau(p560nf, t, q, qd):
@@ -74,39 +73,42 @@ p_list = []
 print('tau computed')
 
 #  Solving the FD and simulating it
-tg = p560nf.fdyn(tfin, q, tau, dt=h)
-
+tg = p560nf.fdyn(tfin, q, tau, dt=ts)
 print('Computed forward dynamics')
 
-u_list = np.array(u_list)
-t_list = np.array(t_list)
-p_list = np.array(p_list)
 
-# Graph of the joints
+def Graphs_position(t, p_list):
+    p_list = np.array(p_list)
+    plt.figure()
+    pos = plt.plot(t, p_list)
+    plt.grid(True)
+    plt.xlim(0, max(t))
+    plt.xlabel("Time [s]")
+    plt.ylabel("$pos \ [m]$")
+    plt.legend(pos[:], ["$x$", "$y$", "$z$"])
+    plt.show()
+
+
+def Graph_taus(t, u_list):
+    u_list = np.array(u_list)
+    plt.figure()
+    torques = plt.plot(t, u_list)
+    plt.grid(True)
+    plt.xlim(0, max(t))
+    plt.xlabel("Time [s]")
+    plt.ylabel("$torques \ [m]$")
+    plt.legend(torques[:], [r"$\tau_{1}$", r"$\tau_{2}$", r"$\tau_{3}$",
+               r"$\tau_{4}$", r"$\tau_{5}$", r"$\tau_{6}$"])
+    plt.show()
+
+
+# Plot
 rtb.tools.trajectory.qplot(tg.t, tg.q)
 plt.show()
 
-# Graph Cartesian position
-plt.figure()
-pos = plt.plot(t_list, p_list)
-plt.grid(True)
-plt.xlim(0, max(t_list))
-plt.xlabel("Time [s]")
-plt.ylabel("$pos \ [m]$")
-plt.legend(pos[:], ["$x$", "$y$", "$z$"])
-plt.show()
+Graphs_position(t_list, p_list)
+Graph_taus(t_list, u_list)
 
-# Graph Cartesian position
-plt.figure()
-torques = plt.plot(t_list, u_list)
-plt.grid(True)
-plt.xlim(0, max(t_list))
-plt.xlabel("Time [s]")
-plt.ylabel("$pos \ [m]$")
-plt.legend(torques[:], [r"$\tau_{1}$", r"$\tau_{2}$", r"$\tau_{3}$",
-           r"$\tau_{4}$", r"$\tau_{5}$", r"$\tau_{6}$"])
-plt.show()
 
-# Animation of the robt
-p560.plot(tg.q)
-plt.show()
+# p560.plot(tg.q)
+# plt.show()

@@ -17,7 +17,6 @@ np.set_printoptions(linewidth=100, formatter={
 p560 = rtb.models.DH.Puma560()
 p560nf = p560.nofriction()
 
-
 # For time simulation
 tfin = 6
 h = 0.05
@@ -30,7 +29,9 @@ qdd = np.zeros((6,))
 q_des2 = np.array([0, 0.7854, 3.142, 0, 0.7854, 0])
 qd_des = np.zeros((6,))
 # Desired Values
-Td = SE3(0.5963, -0.1500, 0.6574)@SE3.Ry(np.pi/2)
+Td = transl(0.5963, 0.1501, 0.6575)@troty(np.pi/2)  # desired Homogen matrix
+Td2 = SE3(0.5960, -0.1501, 0.6575)@SE3.Ry(np.pi/2)
+
 vel = np.zeros((6,))
 
 # Interaction model variables
@@ -54,11 +55,11 @@ Kv = np.diag(kvs2)
 luvs2 = 5
 kps2 = np.array([luvs2, luvs2, luvs2, luvs2, luvs2, luvs2])
 Kp_t = np.diag(kps2)
-
+#########################
 T = p560nf.fkine(p560.qn)
 T = np.array(T)
-pos_T = T  # equal to T (Just for the Initial condition)
-pos_T = np.array(pos_T)
+pos_T = p560nf.fkine(p560.qn)  # equal to T (Just for the Initial condition)
+#pos_T = np.array(pos_T)
 p = transl(T)
 pos = np.r_[p, 0, 0, 0]
 
@@ -72,11 +73,12 @@ def tr2delta_explicit(T0, T1):
 
 
 def run_simulation(N, ts, q, qd, pos_T, vel, pos):
+
     for k in np.arange(0, N).reshape(-1):
         if(k >= 0 and k < 40):  # First 2 sec
             f = 0
         if(k >= 40 and k < 80):  # For 4 sec
-            f = 10
+            f = 0
         if (k >= 80):
             f = 0
 
@@ -91,27 +93,29 @@ def run_simulation(N, ts, q, qd, pos_T, vel, pos):
         T = np.array(T)
         J_dot = p560nf.jacob_dot(q, qd)
         xdot = J@qd
+        Ext_force = p560nf.pay(Fext, frame=1)
 
        # Dynamic errors
-        x_tilde_d = tr2delta_explicit(T, pos_T)
+        x_tilde_d = tr2delta_explicit(Td, pos_T)
         x_tilde_d = x_tilde_d.reshape(6,)
         xdot_tilde_d = vel
 
         # Interaction Model
         acc = np.linalg.pinv(VarGamma)@(-Dd@xdot_tilde_d
-                                        - Kp@x_tilde_d - Fext)
-        #acc = np.linalg.pinv(VarGamma)@(-Dd@xdot_tilde_d - Fext)
+                                        - Kp@x_tilde_d - Ext_force)
+        # acc = np.linalg.pinv(VarGamma)@(-Dd@xdot_tilde_d - Fext)
+        q_des = p560nf.ikine_LM(Td2, q)
+        qd_des = np.linalg.pinv(J)@vel
+        # print(qd_des)
         vel = vel + acc*ts
         pos = pos + vel*ts
 
         pos_T = SE3(pos[0], pos[1], pos[2]) @ SE3.Ry(np.pi/2)
 
-        q_des = p560nf.ikine_LM(pos_T, q)
-
         nu2 = (Kv@(qd_des-qd) + Kp_t@(q_des.q - q))
-        u = M@nu2 + C@qd + g + J.T@Fext
+        u = M@nu2 + C@qd + g + Ext_force
 
-        qdd = np.linalg.pinv(M)@(u - C@qd - g + J.T@Fext)
+        qdd = np.linalg.pinv(M)@(u - C@qd - g + Ext_force)
         qd = qd + qdd*ts
         q = q + qd*ts
 
@@ -122,8 +126,10 @@ def run_simulation(N, ts, q, qd, pos_T, vel, pos):
         Vdot = xdot_tilde_d.T@Fext - xdot_tilde_d.T@Dd@xdot_tilde_d
         passiv = xdot_tilde_d.T@Fext
         q_list.append(q)
+        qdes_list.append(q_des.q)
         u_list.append(u)
         p_list.append(transl(T))
+        posd_list.append(pos)
         V_list.append(V)
         Vdot_list.append(Vdot)
         passiv_list.append(passiv)
@@ -132,24 +138,35 @@ def run_simulation(N, ts, q, qd, pos_T, vel, pos):
 
 
 q_list = []
+qdes_list = []
 qd_list = []
 u_list = []
 p_list = []
 V_list = []
 Vdot_list = []
 passiv_list = []
+posd_list = []
 print('simulation done')
 
 
-def Graphs_position(t, p_list):
+def Graphs_position(t, p_list, posd_list):
     p_list = np.array(p_list)
-    plt.figure()
+    posd_list = np.array(posd_list)
+    plt.figure(1)
+    plt.subplot(211)
     pos = plt.plot(t, p_list)
     plt.grid(True)
     plt.xlim(0, max(t))
     plt.xlabel("Time [s]")
     plt.ylabel("$pos \ [m]$")
     plt.legend(pos[:], ["$x$", "$y$", "$z$"])
+    plt.subplot(212)
+    posd = plt.plot(t, posd_list)
+    plt.grid(True)
+    plt.xlim(0, max(t))
+    plt.xlabel("Time [s]")
+    plt.ylabel("$pos \ [m]$")
+    plt.legend(posd[:], ["$xd$", "$yd$", "$zd$", "$rxd$", "$ryd$", "$rzd$"])
     plt.show()
 
 
@@ -166,9 +183,11 @@ def Graph_taus(t, u_list):
     plt.show()
 
 
-def Graph_qs(t, q_list):
+def Graph_qs(t, q_list, qdes_list):
     q_list = np.array(q_list)
+    qdes_list = np.array(qdes_list)
     plt.figure()
+    plt.subplot(211)
     qs = plt.plot(t, q_list)
     plt.grid(True)
     plt.xlim(0, max(t))
@@ -176,6 +195,14 @@ def Graph_qs(t, q_list):
     plt.ylabel("$q \ [rad]$")
     plt.legend(qs[:], [r"$q_{1}$", r"$q_{2}$", r"$q_{3}$",
                        r"$q_{4}$", r"$q_{5}$", r"$q_{6}$"])
+    plt.subplot(212)
+    qds = plt.plot(t, qdes_list)
+    plt.grid(True)
+    plt.xlim(0, max(t))
+    plt.xlabel("Time [s]")
+    plt.ylabel("$q \ [rad]$")
+    plt.legend(qds[:], [r"$q_{d1}$", r"$q_{d2}$", r"$q_{d3}$",
+                        r"$q_{d4}$", r"$q_{d5}$", r"$q_{d6}$"])
     plt.show()
 
 
@@ -201,12 +228,13 @@ def Graph_Storage(t, V_list, Vdot_list, passiv_list):
 
 
 run_simulation(N, h, q, qd, pos_T, vel, pos)
-Graph_qs(t, q_list)
-Graphs_position(t, p_list)
+Graph_qs(t, q_list, qdes_list)
+Graphs_position(t, p_list, posd_list)
 Graph_taus(t, u_list)
 Graph_Storage(t, V_list, Vdot_list, passiv_list)
 
 # Animation of the robt
 q_list = np.array(q_list)
 p560.plot(q_list)
+plt.show()
 plt.show()

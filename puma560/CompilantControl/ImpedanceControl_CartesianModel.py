@@ -1,3 +1,6 @@
+# Test using the whole Cartesian model of the manipulator
+# Not ready yet
+
 import numpy as np
 import math
 import roboticstoolbox as rtb

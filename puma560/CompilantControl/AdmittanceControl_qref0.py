@@ -29,7 +29,7 @@ qd = np.zeros((6,))
 qdd = np.zeros((6,))
 qd_des = np.zeros((6,))
 # Desired Values
-Td = SE3(0.5960, -0.1501, 0.6575)@SE3.Ry(np.pi/2)
+Td = transl(0.5963, -0.1501, 0.6575)@troty(np.pi/2)  # desired Homogen matrix
 vel = np.zeros((6,))
 
 
@@ -58,7 +58,6 @@ Kp_t = np.diag(kps2)
 T = p560nf.fkine(q)
 T = np.array(T)
 pos_T = T  # equal to T (Just for the Initial condition)
-#pos_T = np.array(pos_T)
 p = transl(T)
 pos = np.r_[p, 0, 0, 0]
 
@@ -74,9 +73,9 @@ def tr2delta_explicit(T0, T1):
 def run_simulation(N, ts, q, qd, pos_T, vel, pos):
     for k in np.arange(0, N).reshape(-1):
         if(k >= 0 and k < 50):
-            f = 10
+            f = 0
         if (k >= 50):
-            f = 20
+            f = 10
         Fext = [f, 0, 0, 0, 0, 0]
         Fext = np.array(Fext)
 

@@ -14,7 +14,7 @@ np.set_printoptions(linewidth=100, formatter={
 # In[1]:
 Jaco2 = rtb.models.URDF.KinovaJaco2()
 
-print(Jaco2.fkine(Jaco2.qz))
+print(Jaco2.fkine(Jaco2.qn))
 
-# Jaco2.plot(Jaco2.qz)
-# plt.show()
+Jaco2.plot(Jaco2.qn)
+plt.show()

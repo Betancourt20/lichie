@@ -26,11 +26,11 @@ qd_des = np.zeros((6,))
 qdd_des = np.zeros((6,))
 
 # Control variables
-nuvs = 1.5
+nuvs = 3.5
 kvs = np.array([nuvs, nuvs, nuvs, nuvs, nuvs, nuvs])
 Kv = np.diag(kvs)
 
-luvs = 3
+luvs = 5
 kps = np.array([luvs, luvs, luvs, luvs, luvs, luvs])
 Kp = np.diag(kps)
 
@@ -57,7 +57,7 @@ def tau(p560nf, t, q, qd):
 print('tau computed')
 
 #  Solving the FD and simulating it
-tg = p560nf.fdyn(5, q, tau, dt=0.05)
+tg = p560nf.fdyn(4, q, tau, dt=0.005)
 print('Computed forward dynamics')
 
 # Plot
