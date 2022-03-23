@@ -19,7 +19,7 @@ p560nf = p560.nofriction()
 
 # For time simulation
 # For time simulation
-tfin = 3
+tfin = 10
 ts = 0.05
 
 # Initial state conditions
@@ -28,41 +28,62 @@ qd = np.zeros((6,))
 qdd = np.zeros((6,))
 
 # Desired Values
-Td = transl(0.5963, -0.1501, 0.6575)@troty(np.pi/2)  # desired Homogen matrix
-Td2 = SE3(0.5960, -0.1501, 0.6575)@SE3.Ry(np.pi/2)
+Td = transl(0.5960, -0.1501, 0.6575)@troty(np.pi/2)  # desired Homogen matrix
 vel0 = np.zeros((6,))
 
+# -----------------------------------------------------------------
 # Interaction model variables
-v1 = 5
+v1 = 0.8
 varsgamma = np.array([v1, v1, v1, v1, v1, v1])
 VarGamma = np.diag(varsgamma)
 
-nuvs = 12.5
+nuvs = 7.5
 kvs = np.array([nuvs, nuvs, nuvs, nuvs, nuvs, nuvs])
 Dd = np.diag(kvs)
 
-luvs = 100
+luvs = 10
 kps = np.array([luvs, luvs, luvs, luvs, luvs, luvs])
 Kp_t = np.diag(kps)
 
 # Motion control variables
-nuvs2 = 3.5
+nuvs2 = 5
 kvs2 = np.array([nuvs2, nuvs2, nuvs2, nuvs2, nuvs2, nuvs2])
 Kv = np.diag(kvs2)
 
-luvs2 = 5
+luvs2 = 100
 kps2 = np.array([luvs2, luvs2, luvs2, luvs2, luvs2, luvs2])
 Kp = np.diag(kps2)
-#########################
-T = p560nf.fkine(p560.qn)
-T = np.array(T)
-pos_T = p560nf.fkine(p560.qn)  # equal to T (Just for the Initial condition)
-p = transl(T)
-pos0 = np.r_[p, 0, 0, 0]
+# ----------------------------------------------------------------
+# Parameters for the simulation external force
+# The function gives 0 external force between t0 and t1
+# Then, between t1 and t2 the external force is applied
+# This functions has the following format
+#  t >= t0 and t < t1,  0
+#  t >= t1 and t < t2,  f
+#  t>= tu,              0
+# This times can be set as the user needs
+t0 = 0
+t1 = 2.5
+t2 = 3.5
+f = 5  # Amount of force
+# vector of exteranl forces. [fx,fy.fz,fwx,fwy,fwz]
+F = np.array([f, 0, 0, 0, 0, 0])  # Here the user can chose the axis
+ext_f = np.array([0, 0, 0, 0, 0, 0])  # initial condition
+# -------------------------------------------------------------
+# Required initial parameters for computing the tau functions
+t_ant = 0
+t2_ant = 0
+u = p560nf.gravload(q)
+T = p560nf.fkine(q)
 
+targs = {'VarGamma': VarGamma, 'Dd': Dd, 'Kp_t': Kp_t,
+         'Kv': Kv, 'Kp': Kp, 'F': F, 't0': t0, 't1': t1, 't2': t2, 'ts': ts}
 
-targs = {'VarGamma': VarGamma, 'Dd': Dd, 'Kp': Kp,
-         'pos_T': pos_T, 'pos0': pos0, 'vel0': vel0}
+pargs = {'F': F, 't0': t0, 't1': t1, 't2': t2, 'ts': ts}
+
+pos_T = p560nf.fkine(q)  # equal to T (Just for the Initial condition)
+pos = np.r_[transl(np.array(pos_T)), 0, 0, 0]
+vel = np.zeros((6,))
 
 
 def tr2delta_explicit(T0, T1):
@@ -73,62 +94,119 @@ def tr2delta_explicit(T0, T1):
     return delta
 
 
-def tau(p560nf, t, q, qd, VarGamma, Dd, Kp, pos_T, pos0, vel0):
+def F_ext(p560nf, t, q, F, t0, t1, t2, ts):
+    global t2_ant, ext_f
+    if (t >= t2_ant + ts):
+        J = p560nf.jacob0(q)  # Jacobian in the inertial frame
+        if(t >= t0 and t < t1):  # First 2 sec
+            F = np.array([0, 0, 0, 0, 0, 0])
+        if(t >= t1 and t < t2):  # For 4 sec
+            F = F
+        if (t >= t2):
+            F = np.array([0, 0, 0, 0, 0, 0])
+            t2_ant = t2_ant + ts
+        ext_f = F
+    # Ext_force = p560nf.pay(Fext)
+    return ext_f
 
-    M = p560nf.inertia(q)
-    g = p560nf.gravload(q)
-    C = p560.coriolis(q, qd)
-    J = p560nf.jacob0(q)
-    T = p560nf.fkine(q)
-    if(t >= 0 and t < 2.500):  # First 2 sec
-        f = 0
-    if(t >= 2.500 and t < 3.500):  # For 4 sec
-        f = 0
-    if (t >= 3.500):
-        f = 0
-    Fext = np.array([f, 0, 0, 0, 0, 0])
-    Ext_force = p560nf.pay(Fext)
 
-    J_dot = p560nf.jacob_dot(q, qd)
-    x_tilde = tr2delta_explicit(Td, pos_T)
-    x_tilde = x_tilde.reshape(6,)
-    xdot_tilde = vel0
-    xdot = J@qd
-    # Interaction Model
-    acc = np.linalg.pinv(VarGamma)@(-Dd@xdot_tilde
-                                    - Kp_t@x_tilde - Fext)
-    q_des = p560nf.ikine_LM(pos_T, q)
+def tau(p560nf, t, q, qd, VarGamma, Dd, Kp_t, Kv, Kp, F, t0, t1, t2, ts):
+    global t_ant, u, T, vel, pos, pos_T
 
-    #qd_des = np.linalg.pinv(J)@vel0
-    # print(qd_des)
-    vel = vel0 + acc*t
-    pos = pos0 + vel*t
+    if (t >= t_ant + ts):
+        M = p560nf.inertia(q)
+        g = p560nf.gravload(q)
+        C = p560.coriolis(q, qd)
+        J = p560nf.jacob0(q)
+        T = p560nf.fkine(q)
+        Ext_force = F_ext(p560nf, t, q, F, t0, t1, t2, ts)
+        x_tilde = tr2delta_explicit(Td, pos_T)
+        x_tilde = x_tilde.reshape(6,)
+        xdot_tilde = vel
+        xdot = J@qd
+        # Interaction Model
+        acc = np.linalg.pinv(VarGamma)@(-Dd@xdot_tilde
+                                        - Kp_t@x_tilde - Ext_force)
+        q_des = p560nf.ikine_LM(pos_T, q)
+        # print(q_des.q)
+        vel = vel + acc*ts
+        pos = pos + vel*ts
 
-    # print(pos)
+        pos_T = SE3(pos[0], pos[1], pos[2]) @ SE3.Ry(np.pi/2)
 
-    pos_T = SE3(pos[0], pos[1], pos[2]) @ SE3.Ry(np.pi/2)
-
-    nu2 = (Kv@(0-qd) + Kp@(q_des.q - q))
-    u = M@nu2 + C@qd + g + Ext_force
-
-    t_list.append(t)
-    u_list.append(u)
-    p_list.append(transl(np.array(T)))
+        nu2 = (Kv@(0-qd) + Kp@(q_des.q - q))
+        u = M@nu2 + C@qd + g
+        t_ant = t_ant + ts
+        t_list.append(t)
+        u_list.append(u)
+        p_list.append(transl(np.array(T)))
+        pd_list.append(transl(np.array(pos_T)))
     return u
 
 
 t_list = []
 u_list = []
 p_list = []
+pd_list = []
 
 print('tau computed')
 
 #  Solving the FD and simulating it
-tg = p560nf.fdyn(tfin, q, tau, targs=targs, dt=ts)
+sargs = {'max_step': 0.05}
+tg = p560nf.fdyn(tfin, q, tau, F_ext, targs=targs,
+                 pargs=pargs, dt=ts, sargs=sargs)
+
 print('Computed forward dynamics')
 
-# Plot
+t_list = np.array(t_list)
+u_list = np.array(u_list)
+p_list = np.array(p_list)
+pd_list = np.array(pd_list)
+
+# Joint coordinates graph
 rtb.tools.trajectory.qplot(tg.t, tg.q)
+plt.show()
+
+
+def Graphs_position(t, p_list, pd_list):
+    fig, ax = plt.subplots()
+    ax = plt.subplot(3, 1, 1)
+    plt.plot(t, p_list[:, 0], label='x')
+    plt.plot(t, pd_list[:, 0], label='xd')
+    plt.grid(True)
+    ax.set_ylabel("$x \ [m]$")
+    ax.set_xlim(0, max(t))
+    ax.set_xlabel("Time (s)")
+    ax.legend(loc="upper right")
+
+    ax = plt.subplot(3, 1, 2)
+    plt.plot(t, p_list[:, 1], label='y')
+    plt.plot(t, pd_list[:, 1], label='yd')
+    plt.grid(True)
+    ax.set_ylabel("$y \ [m]$")
+    ax.set_xlim(0, max(t))
+    ax.set_xlabel("Time (s)")
+    ax.legend(loc="upper right")
+
+    ax = plt.subplot(3, 1, 3)
+    plt.plot(t, p_list[:, 2], label='z')
+    plt.plot(t, pd_list[:, 2], label='zd')
+    plt.grid(True)
+    ax.set_ylabel("$z \ [m]$")
+    ax.set_xlim(0, max(t))
+    ax.set_xlabel("Time (s)")
+    ax.legend(loc="upper right")
+
+    plt.show()
+
+
+# Positions coordinates graph
+# rtb.tools.trajectory.XYZplot(t_list, p_list, labels='x y z', stack=True)
+# plt.show()
+Graphs_position(t_list, p_list, pd_list)
+
+# Torques graph
+rtb.tools.trajectory.tausplot(t_list, u_list)
 plt.show()
 
 # Animation of the robt
