@@ -14,7 +14,7 @@ p560 = rtb.models.DH.Puma560()
 p560nf = p560.nofriction()
 
 # For time simulation
-tfin = 5
+tfin = 8
 ts = 0.05
 
 # Initial state conditions
@@ -27,15 +27,15 @@ Td = transl(0.5963, -0.1501, 0.6575)@troty(np.pi/2)  # desired Homogen matrix
 
 # ----------------------------------------------------------------
 # Control variables
-v1 = 5
+v1 = 1
 varsgamma = np.array([v1, v1, v1, v1, v1, v1])
 VarGamma = np.diag(varsgamma)
 
-nuvs = 20
+nuvs = 12.5
 kvs = np.array([nuvs, nuvs, nuvs, nuvs, nuvs, nuvs])
 Dd = np.diag(kvs)
 
-luvs = 100
+luvs = 80
 kps = np.array([luvs, luvs, luvs, luvs, luvs, luvs])
 Kp = np.diag(kps)
 
@@ -52,15 +52,20 @@ t0 = 0
 t1 = 2.5
 t2 = 3.5
 f = 20  # Amount of force
-# vector of exteranl forces. [fx,fy.fz,fwx, fwy, fwz]
-F = np.array([f, 0, 0, 0, 0, 0])
-
+# vector of exteranl forces. [fx,fy.fz,fwx,fwy,fwz]
+F = np.array([f, 0, 0, 0, 0, 0])  # Here the user can chose the axis
+ext_f = np.array([0, 0, 0, 0, 0, 0])  # initial condition
 # -------------------------------------------------------------
 # Required initial parameters for computing the tau functions
-targs = {'VarGamma': VarGamma, 'Dd': Dd, 'Kp': Kp}
 t_ant = 0
-u = np.zeros((6,))
+t2_ant = 0
+u = p560nf.gravload(q)
 T = p560nf.fkine(q)
+
+targs = {'VarGamma': VarGamma, 'Dd': Dd, 'Kp': Kp,
+         'F': F, 't0': t0, 't1': t1, 't2': t2, 'ts': ts}
+
+pargs = {'F': F, 't0': t0, 't1': t1, 't2': t2, 'ts': ts}
 
 
 def tr2delta_explicit(T0, T1):
@@ -71,27 +76,31 @@ def tr2delta_explicit(T0, T1):
     return delta
 
 
-def F_ext(t, F, t0, t1, t2):
-    if(t >= t0 and t < t1):  # First 2 sec
-        Ext_F = np.array([0, 0, 0, 0, 0, 0])
-    if(t >= t1 and t < t2):  # For 4 sec
-        Ext_F = F
-    if (t >= t2):
-        Ext_F = np.array([0, 0, 0, 0, 0, 0])
+def F_ext(p560nf, t, q, F, t0, t1, t2, ts):
+    global t2_ant, ext_f
+    if (t >= t2_ant + ts):
+        J = p560nf.jacob0(q)  # Jacobian in the inertial frame
+        if(t >= t0 and t < t1):  # First 2 sec
+            F = np.array([0, 0, 0, 0, 0, 0])
+        if(t >= t1 and t < t2):  # For 4 sec
+            F = F
+        if (t >= t2):
+            F = np.array([0, 0, 0, 0, 0, 0])
+            t2_ant = t2_ant + ts
+        ext_f = F
     # Ext_force = p560nf.pay(Fext)
-    return Ext_F
+    return ext_f
 
 
-def tau(p560nf, t, q, qd, VarGamma, Dd, Kp):
-    global t_ant, ts, tr_ant, u, T, F, t0, t1, t2
-
+def tau(p560nf, t, q, qd, VarGamma, Dd, Kp, F, t0, t1, t2, ts):
+    global t_ant, u, T
     if (t >= t_ant + ts):
         M = p560nf.inertia(q)
         g = p560nf.gravload(q)
         C = p560.coriolis(q, qd)
         J = p560nf.jacob0(q)
         T = p560nf.fkine(q)
-        Ext_force = F_ext(t, F, t0, t1, t2)
+        Ext_force = F_ext(p560nf, t, q, F, t0, t1, t2, ts)
         J_dot = p560nf.jacob_dot(q, qd)
         x_tilde = tr2delta_explicit(Td, T)
         x_tilde = x_tilde.reshape(6,)
@@ -100,8 +109,8 @@ def tau(p560nf, t, q, qd, VarGamma, Dd, Kp):
                                                          x_tilde - Dd@xdot - VarGamma@J_dot@qd - Ext_force)
         u = M@nu + C@qd + g
         t_ant = t_ant + ts
-        u_list.append(u)
         t_list.append(t)
+        u_list.append(u)
         p_list.append(transl(np.array(T)))
 
     return u
@@ -115,13 +124,14 @@ print('tau computed')
 
 #  Solving the FD and simulating it
 sargs = {'max_step': 0.05}
-tg = p560nf.fdyn(tfin, q, tau, targs=targs, dt=ts, sargs=sargs)
+tg = p560nf.fdyn(tfin, q, tau, F_ext, targs=targs,
+                 pargs=pargs, dt=ts, sargs=sargs)
+
 print('Computed forward dynamics')
 
-# Graph all states
-p_list = np.array(p_list)
 t_list = np.array(t_list)
 u_list = np.array(u_list)
+p_list = np.array(p_list)
 
 # Joint coordinates graph
 rtb.tools.trajectory.qplot(tg.t, tg.q)
