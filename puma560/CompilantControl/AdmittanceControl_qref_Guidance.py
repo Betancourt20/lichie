@@ -46,7 +46,6 @@ q5d_max = math.radians(228)
 qd_max = np.array([q0d_max, q1d_max, q2d_max, q3d_max, q4d_max, q5d_max])
 # print(qd_max)
 # ------------------------------------------------------------------
-
 # Desired Values
 # @troty(np.pi/2)  # desired Homogen matrix
 Td = transl(0.5960, -0.1501, 0.6575)@troty(np.pi/2)
@@ -54,7 +53,7 @@ vel0 = np.zeros((6,))
 
 # -----------------------------------------------------------------
 # Interaction model variables
-v1 = 0.8
+v1 = 1
 varsgamma = np.array([v1, v1, v1, v1, v1, v1])
 VarGamma = np.diag(varsgamma)
 
@@ -67,11 +66,11 @@ kps = np.array([luvs, luvs, luvs, luvs, luvs, luvs])
 Kp_t = np.diag(kps)
 
 # Motion control variables
-nuvs2 = 10.5
+nuvs2 = 12.5
 kvs2 = np.array([nuvs2, nuvs2, nuvs2, nuvs2, nuvs2, nuvs2])
 Kv = np.diag(kvs2)
 
-luvs2 = 70
+luvs2 = 30
 kps2 = np.array([luvs2, luvs2, luvs2, luvs2, luvs2, luvs2])
 Kp = np.diag(kps2)
 # ----------------------------------------------------------------
@@ -88,7 +87,7 @@ t1 = 2.5
 t2 = 3.5
 f = 5  # Amount of force
 # vector of exteranl forces. [fx,fy.fz,fwx,fwy,fwz]
-F = np.array([f, 0, 0, 0, 0, 0])  # Here the user can chose the axis
+F = np.array([f, -f, 0, 0, 0, 0])  # Here the user can chose the axis
 ext_f = np.array([0, 0, 0, 0, 0, 0])  # initial condition
 # -------------------------------------------------------------
 # Required initial parameters for computing the tau functions
@@ -98,7 +97,7 @@ u = p560nf.gravload(q)
 T = p560nf.fkine(q)
 
 targs = {'VarGamma': VarGamma, 'Dd': Dd, 'Kp_t': Kp_t,
-         'Kv': Kv, 'Kp': Kp, 'F': F, 't0': t0, 't1': t1, 't2': t2, 'ts': ts, 'Td': Td}
+         'Kv': Kv, 'Kp': Kp, 'F': F, 't0': t0, 't1': t1, 't2': t2, 'ts': ts, 'Td': Td, 'tau_max': tau_max, 'qd_max': qd_max}
 
 pargs = {'F': F, 't0': t0, 't1': t1, 't2': t2, 'ts': ts}
 
@@ -130,7 +129,47 @@ def F_ext(p560nf, t, q, F, t0, t1, t2, ts):
     return ext_f
 
 
-def tau(p560nf, t, q, qd, VarGamma, Dd, Kp_t, Kv, Kp, F, t0, t1, t2, ts, Td):
+"""
+def tau_constraint(u, tau_max):
+
+    if u[0] >= tau_max[0]:
+        u[0] = tau_max[0]
+    if u[1] >= tau_max[1]:
+        u[1] = tau_max[1]
+    if u[2] >= tau_max[2]:
+        u[2] = tau_max[2]
+    if u[3] >= tau_max[3]:
+        u[3] = tau_max[3]
+    if u[4] >= tau_max[4]:
+        u[4] = tau_max[4]
+    if u[5] >= tau_max[5]:
+        u[5] = tau_max[5]
+
+    return u
+"""
+
+
+"""
+def qds_constraint(qd, qd_max):
+
+    if qd[0] >= qd_max[0]:
+        qd[0] = qd_max[0]
+    if qd[1] >= qd_max[1]:
+        qd[1] = qd_max[1]
+    if qd[2] >= qd_max[2]:
+        qd[2] = qd_max[2]
+    if qd[3] >= qd_max[3]:
+        qd[3] = qd_max[3]
+    if qd[4] >= qd_max[4]:
+        qd[4] = qd_max[4]
+    if qd[5] >= qd_max[5]:
+        qd[5] = qd_max[5]
+
+    return qd
+"""
+
+
+def tau(p560nf, t, q, qd, VarGamma, Dd, Kp_t, Kv, Kp, F, t0, t1, t2, ts, Td, tau_max, qd_max):
     global t_ant, u, T, vel, pos, pos_T
 
     if (t >= t_ant + ts):
@@ -145,7 +184,7 @@ def tau(p560nf, t, q, qd, VarGamma, Dd, Kp_t, Kv, Kp, F, t0, t1, t2, ts, Td):
         #xdot = J@qd
 
         xdot_tilde = vel
-        # xdot = J@qd
+        xdot = J@qd
         # Interaction Model
         acc = np.linalg.pinv(VarGamma)@(-Dd@xdot_tilde
                                         - Kp_t@x_tilde - Ext_force)
@@ -158,6 +197,9 @@ def tau(p560nf, t, q, qd, VarGamma, Dd, Kp_t, Kv, Kp, F, t0, t1, t2, ts, Td):
         # Main control
         nu = (Kv@(qd_des-qd) + Kp@(q_des.q - q))
         u = M@nu + C@qd + g
+        #u = tau_constraint(u, tau_max)
+        #qd = qds_constraint(qd, qd_max)
+        # print(qd)
         t_ant = t_ant + ts  # update t_ant
         # make the vector outputs
         t_list.append(t)
@@ -165,6 +207,7 @@ def tau(p560nf, t, q, qd, VarGamma, Dd, Kp_t, Kv, Kp, F, t0, t1, t2, ts, Td):
         p_list.append(transl(np.array(T)))
         pd_list.append(transl(np.array(pos_T)))
         q_dlist.append(q_des.q)
+        qd_dlist.append(qd_des)
     return u
 
 
@@ -173,13 +216,16 @@ u_list = []
 p_list = []
 pd_list = []
 q_dlist = []
+qd_dlist = []
 
 print('tau computed')
+
 
 #  Solving the FD and simulating it
 sargs = {'max_step': 0.05}
 tg = p560nf.fdyn(tfin, q, tau, F_ext, qd_max=qd_max, tau_max=tau_max,
                  targs=targs, pargs=pargs, dt=ts, sargs=sargs)
+
 print('Computed forward dynamics')
 
 t_list = np.array(t_list)
@@ -187,10 +233,11 @@ u_list = np.array(u_list)
 p_list = np.array(p_list)
 pd_list = np.array(pd_list)
 q_dlist = np.array(q_dlist)
+qd_dlist = np.array(qd_dlist)
 
 # Joint coordinates graph
-rtb.tools.trajectory.qplot(tg.t, tg.q)
-plt.show()
+#rtb.tools.trajectory.qplot(tg.t, tg.q)
+# plt.show()
 
 
 def Graphs_position(t, p_list, pd_list):
@@ -284,12 +331,73 @@ def Graphs_qs(t, q, tt, q_d):
     plt.show()
 
 
+def Graphs_qds(t, qd, tt, qd_d):
+    fig, ax = plt.subplots()
+    ax = plt.subplot(3, 2, 1)
+    plt.plot(t, qd[:, 0], label=r'\dot{q}0')
+    plt.plot(tt, qd_d[:, 0], label=r'\dot{q}d0')
+    plt.grid(True)
+    ax.set_ylabel(r"$\dot{q}1 \ [m]$")
+    ax.set_xlim(0, max(t))
+    ax.set_xlabel("Time (s)")
+    ax.legend(loc="upper right")
+
+    ax = plt.subplot(3, 2, 2)
+    plt.plot(t, qd[:, 1], label=r'\dot{q}1')
+    plt.plot(tt, qd_d[:, 1], label=r'\dot{q}1d')
+    plt.grid(True)
+    ax.set_ylabel(r"$\dot{q}1 \ [m]$")
+    ax.set_xlim(0, max(t))
+    ax.set_xlabel("Time (s)")
+    ax.legend(loc="upper right")
+
+    ax = plt.subplot(3, 2, 3)
+    plt.plot(t, qd[:, 2], label=r'\dot{q}2')
+    plt.plot(tt, qd_d[:, 2], label=r'\dot{q}2d')
+    plt.grid(True)
+    ax.set_ylabel(r"$\dot{q}2 \ [m]$")
+    ax.set_xlim(0, max(t))
+    ax.set_xlabel("Time (s)")
+    ax.legend(loc="upper right")
+
+    ax = plt.subplot(3, 2, 4)
+    plt.plot(t, qd[:, 3], label=r'\dot{q}3')
+    plt.plot(tt, qd_d[:, 3], label=r'\dot{q}3d')
+    plt.grid(True)
+    ax.set_ylabel(r"$\dot{q}3\ [m]$")
+    ax.set_xlim(0, max(t))
+    ax.set_xlabel("Time (s)")
+    ax.legend(loc="upper right")
+
+    ax = plt.subplot(3, 2, 5)
+    plt.plot(t, qd[:, 4], label=r'\dot{q}4')
+    plt.plot(tt, qd_d[:, 4], label=r'\dot{q}4d')
+    plt.grid(True)
+    ax.set_ylabel(r"$\dot{q}4 \ [m]$")
+    ax.set_xlim(0, max(t))
+    ax.set_xlabel("Time (s)")
+    ax.legend(loc="upper right")
+
+    ax = plt.subplot(3, 2, 6)
+    plt.plot(t, qd[:, 5], label=r'\dot{q}5')
+    plt.plot(tt, qd_d[:, 5], label=r'\dot{q}5d')
+    plt.grid(True)
+    ax.set_ylabel(r"$\dot{q}5 \ [m]$")
+    ax.set_xlim(0, max(t))
+    ax.set_xlabel("Time (s)")
+    ax.legend(loc="upper right")
+
+    plt.show()
+
+
 # Positions coordinates graph
 # rtb.tools.trajectory.XYZplot(t_list, p_list, labels='x y z', stack=True)
 # plt.show()
 Graphs_position(t_list, p_list, pd_list)
 
 Graphs_qs(tg.t, tg.q, t_list, q_dlist)
+
+Graphs_qds(tg.t, tg.qd, t_list, qd_dlist)
 
 # Torques graph
 rtb.tools.trajectory.tausplot(t_list, u_list)
@@ -301,4 +409,6 @@ plt.show()
 
 # print(t_list.shape)
 
+# print(t_list.shape)
+# print(t_list.shape)
 # print(t_list.shape)

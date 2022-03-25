@@ -22,6 +22,26 @@ q = p560.qn
 qd = np.zeros((6,))
 qdd = np.zeros((6,))
 
+# ------------------------------------------------------------------
+# Constraints Torques [Nm]
+t0max = 77
+t1max = 133
+t2max = 66
+t3max = 13
+t4max = 12
+t5max = 13
+tau_max = np.array([t0max, t1max, t2max, t3max, t4max, t5max])
+# Constraints angular velocity [degrees/s]
+q0d_max = math.radians(82)
+q1d_max = math.radians(74)
+q2d_max = math.radians(122)
+q3d_max = math.radians(228)
+q4d_max = math.radians(241)
+q5d_max = math.radians(228)
+qd_max = np.array([q0d_max, q1d_max, q2d_max, q3d_max, q4d_max, q5d_max])
+# print(qd_max)
+# ------------------------------------------------------------------
+
 # Desired Values
 Td = transl(0.5963, -0.1501, 0.6575)@troty(np.pi/2)  # desired Homogen matrix
 
@@ -108,6 +128,7 @@ def tau(p560nf, t, q, qd, VarGamma, Dd, Kp, F, t0, t1, t2, ts):
         nu = np.linalg.pinv(J)@np.linalg.pinv(VarGamma)@(-Kp @
                                                          x_tilde - Dd@xdot - VarGamma@J_dot@qd - Ext_force)
         u = M@nu + C@qd + g
+
         t_ant = t_ant + ts
         t_list.append(t)
         u_list.append(u)
@@ -124,8 +145,8 @@ print('tau computed')
 
 #  Solving the FD and simulating it
 sargs = {'max_step': 0.05}
-tg = p560nf.fdyn(tfin, q, tau, F_ext, targs=targs,
-                 pargs=pargs, dt=ts, sargs=sargs)
+tg = p560nf.fdyn(tfin, q, tau, F_ext, qd_max=qd_max, tau_max=tau_max,
+                 targs=targs, pargs=pargs, dt=ts, sargs=sargs)
 
 print('Computed forward dynamics')
 
