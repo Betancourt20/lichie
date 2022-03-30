@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeLite_Project Name="Example_CartesianControl" InternalType="">
+	<VirtualDirectory Name="src">
+		<VirtualDirectory Name="Example_CartesianControl">
+			<VirtualDirectory Name="src">
+				<File Name="../Example_CartesianControl/src/Example_CartesianControl.cpp"/>
+				<File Name="../Example_CartesianControl/src/pid.cpp"/>
+			</VirtualDirectory>
+		</VirtualDirectory>
+	</VirtualDirectory>
+	<VirtualDirectory Name="include">
+		<VirtualDirectory Name="Example_CartesianControl">
+			<VirtualDirectory Name="src">
+				<File Name="../Example_CartesianControl/src/pid.h"/>
+			</VirtualDirectory>
+		</VirtualDirectory>
+	</VirtualDirectory>
+	<Settings Type="Executable">
+		<Configuration Name="NoConfig" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+			<Compiler Options="-g" Required="yes" PreCompiledHeader="">
+				<IncludePath Value="."/>
+			</Compiler>
+			<Linker Options="" Required="yes"/>
+			<ResourceCompiler Options="" Required="no"/>
+			<General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./" Command="./$(ProjectName)" CommandArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
+			<Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="">
+				<PostConnectCommands/>
+				<StartupCommands/>
+			</Debugger>
+			<PreBuild/>
+			<PostBuild/>
+			<CustomBuild Enabled="yes">
+				<RebuildCommand>/usr/bin/make -f$(ProjectPath)/Makefile -j 8 clean &amp;&amp; /usr/bin/make -f$(ProjectPath)/Makefile -j 8</RebuildCommand>
+				<CleanCommand>/usr/bin/make -f$(ProjectPath)/Makefile -j 8 clean</CleanCommand>
+				<BuildCommand>/usr/bin/make -f$(ProjectPath)/Makefile -j 8</BuildCommand>
+				<SingleFileCommand>/usr/bin/make -f$(ProjectPath)/Makefile -B $(CurrentFileFullName).o</SingleFileCommand>
+				<PreprocessFileCommand/>
+				<WorkingDirectory>$(WorkspacePath)</WorkingDirectory>
+			</CustomBuild>
+			<AdditionalRules>
+				<CustomPostBuild/>
+				<CustomPreBuild/>
+			</AdditionalRules>
+		</Configuration>
+		<GlobalSettings>
+			<Compiler Options="">
+				<IncludePath Value="."/>
+			</Compiler>
+			<Linker Options="">
+				<LibraryPath Value="."/>
+			</Linker>
+			<ResourceCompiler Options=""/>
+		</GlobalSettings>
+	</Settings>
+</CodeLite_Project>
