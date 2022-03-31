@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<CodeLite_Workspace Name="Example_CartesianControl">
-	<Project Name="Example_CartesianControl" Path="Example_CartesianControl.project" Active="No"/>
-	<BuildMatrix>
-		<WorkspaceConfiguration Name="NoConfig" Selected="yes">
-			<Project Name="Example_CartesianControl" ConfigName="NoConfig"/>
-		</WorkspaceConfiguration>
-	</BuildMatrix>
-</CodeLite_Workspace>
