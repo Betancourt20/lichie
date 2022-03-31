@@ -129,50 +129,10 @@ def F_ext(p560nf, t, q, F, t0, t1, t2, ts):
     return ext_f
 
 
-"""
-def tau_constraint(u, tau_max):
-
-    if u[0] >= tau_max[0]:
-        u[0] = tau_max[0]
-    if u[1] >= tau_max[1]:
-        u[1] = tau_max[1]
-    if u[2] >= tau_max[2]:
-        u[2] = tau_max[2]
-    if u[3] >= tau_max[3]:
-        u[3] = tau_max[3]
-    if u[4] >= tau_max[4]:
-        u[4] = tau_max[4]
-    if u[5] >= tau_max[5]:
-        u[5] = tau_max[5]
-
-    return u
-"""
-
-
-"""
-def qds_constraint(qd, qd_max):
-
-    if qd[0] >= qd_max[0]:
-        qd[0] = qd_max[0]
-    if qd[1] >= qd_max[1]:
-        qd[1] = qd_max[1]
-    if qd[2] >= qd_max[2]:
-        qd[2] = qd_max[2]
-    if qd[3] >= qd_max[3]:
-        qd[3] = qd_max[3]
-    if qd[4] >= qd_max[4]:
-        qd[4] = qd_max[4]
-    if qd[5] >= qd_max[5]:
-        qd[5] = qd_max[5]
-
-    return qd
-"""
-
-
 def tau(p560nf, t, q, qd, VarGamma, Dd, Kp_t, Kv, Kp, F, t0, t1, t2, ts, Td, tau_max, qd_max):
     global t_ant, u, T, vel, pos, pos_T
 
-    if (t >= t_ant + ts):
+    if (t > t_ant + ts):
         M = p560nf.inertia(q)
         g = p560nf.gravload(q)
         C = p560.coriolis(q, qd)
@@ -181,7 +141,7 @@ def tau(p560nf, t, q, qd, VarGamma, Dd, Kp_t, Kv, Kp, F, t0, t1, t2, ts, Td, tau
         Ext_force = F_ext(p560nf, t, q, F, t0, t1, t2, ts)
         x_tilde = tr2delta_explicit(T, pos_T)
         x_tilde = x_tilde.reshape(6,)
-        #xdot = J@qd
+        # xdot = J@qd
 
         xdot_tilde = vel
         xdot = J@qd
@@ -197,8 +157,9 @@ def tau(p560nf, t, q, qd, VarGamma, Dd, Kp_t, Kv, Kp, F, t0, t1, t2, ts, Td, tau
         # Main control
         nu = (Kv@(qd_des-qd) + Kp@(q_des.q - q))
         u = M@nu + C@qd + g
-        #u = tau_constraint(u, tau_max)
-        #qd = qds_constraint(qd, qd_max)
+
+        # u = tau_constraint(u, tau_max)
+        # qd = qds_constraint(qd, qd_max)
         # print(qd)
         t_ant = t_ant + ts  # update t_ant
         # make the vector outputs
@@ -236,8 +197,8 @@ q_dlist = np.array(q_dlist)
 qd_dlist = np.array(qd_dlist)
 
 # Joint coordinates graph
-#rtb.tools.trajectory.qplot(tg.t, tg.q)
-# plt.show()
+rtb.tools.trajectory.qplot(tg.t, tg.q)
+plt.show()
 
 
 def Graphs_position(t, p_list, pd_list):
@@ -272,11 +233,11 @@ def Graphs_position(t, p_list, pd_list):
     plt.show()
 
 
-def Graphs_qs(t, q, tt, q_d):
+def Graphs_qs(t, q, q_d):
     fig, ax = plt.subplots()
     ax = plt.subplot(3, 2, 1)
     plt.plot(t, q[:, 0], label='q0')
-    plt.plot(tt, q_d[:, 0], label='q0d')
+    plt.plot(t, q_d[:, 0], label='q0d')
     plt.grid(True)
     ax.set_ylabel("$q0 \ [m]$")
     ax.set_xlim(0, max(t))
@@ -285,7 +246,7 @@ def Graphs_qs(t, q, tt, q_d):
 
     ax = plt.subplot(3, 2, 2)
     plt.plot(t, q[:, 1], label='q1')
-    plt.plot(tt, q_d[:, 1], label='q1d')
+    plt.plot(t, q_d[:, 1], label='q1d')
     plt.grid(True)
     ax.set_ylabel("$q1 \ [m]$")
     ax.set_xlim(0, max(t))
@@ -294,7 +255,7 @@ def Graphs_qs(t, q, tt, q_d):
 
     ax = plt.subplot(3, 2, 3)
     plt.plot(t, q[:, 2], label='q2')
-    plt.plot(tt, q_d[:, 2], label='q2d')
+    plt.plot(t, q_d[:, 2], label='q2d')
     plt.grid(True)
     ax.set_ylabel("$q2 \ [m]$")
     ax.set_xlim(0, max(t))
@@ -303,7 +264,7 @@ def Graphs_qs(t, q, tt, q_d):
 
     ax = plt.subplot(3, 2, 4)
     plt.plot(t, q[:, 3], label='q3')
-    plt.plot(tt, q_d[:, 3], label='q3d')
+    plt.plot(t, q_d[:, 3], label='q3d')
     plt.grid(True)
     ax.set_ylabel("$q3 \ [m]$")
     ax.set_xlim(0, max(t))
@@ -312,7 +273,7 @@ def Graphs_qs(t, q, tt, q_d):
 
     ax = plt.subplot(3, 2, 5)
     plt.plot(t, q[:, 4], label='q4')
-    plt.plot(tt, q_d[:, 4], label='q4d')
+    plt.plot(t, q_d[:, 4], label='q4d')
     plt.grid(True)
     ax.set_ylabel("$q4 \ [m]$")
     ax.set_xlim(0, max(t))
@@ -321,7 +282,7 @@ def Graphs_qs(t, q, tt, q_d):
 
     ax = plt.subplot(3, 2, 6)
     plt.plot(t, q[:, 5], label='q5')
-    plt.plot(tt, q_d[:, 5], label='q5d')
+    plt.plot(t, q_d[:, 5], label='q5d')
     plt.grid(True)
     ax.set_ylabel("$q5 \ [m]$")
     ax.set_xlim(0, max(t))
@@ -331,11 +292,11 @@ def Graphs_qs(t, q, tt, q_d):
     plt.show()
 
 
-def Graphs_qds(t, qd, tt, qd_d):
+def Graphs_qds(t, qd, qd_d):
     fig, ax = plt.subplots()
     ax = plt.subplot(3, 2, 1)
     plt.plot(t, qd[:, 0], label=r'\dot{q}0')
-    plt.plot(tt, qd_d[:, 0], label=r'\dot{q}d0')
+    plt.plot(t, qd_d[:, 0], label=r'\dot{q}d0')
     plt.grid(True)
     ax.set_ylabel(r"$\dot{q}1 \ [m]$")
     ax.set_xlim(0, max(t))
@@ -344,7 +305,7 @@ def Graphs_qds(t, qd, tt, qd_d):
 
     ax = plt.subplot(3, 2, 2)
     plt.plot(t, qd[:, 1], label=r'\dot{q}1')
-    plt.plot(tt, qd_d[:, 1], label=r'\dot{q}1d')
+    plt.plot(t, qd_d[:, 1], label=r'\dot{q}1d')
     plt.grid(True)
     ax.set_ylabel(r"$\dot{q}1 \ [m]$")
     ax.set_xlim(0, max(t))
@@ -353,7 +314,7 @@ def Graphs_qds(t, qd, tt, qd_d):
 
     ax = plt.subplot(3, 2, 3)
     plt.plot(t, qd[:, 2], label=r'\dot{q}2')
-    plt.plot(tt, qd_d[:, 2], label=r'\dot{q}2d')
+    plt.plot(t, qd_d[:, 2], label=r'\dot{q}2d')
     plt.grid(True)
     ax.set_ylabel(r"$\dot{q}2 \ [m]$")
     ax.set_xlim(0, max(t))
@@ -362,7 +323,7 @@ def Graphs_qds(t, qd, tt, qd_d):
 
     ax = plt.subplot(3, 2, 4)
     plt.plot(t, qd[:, 3], label=r'\dot{q}3')
-    plt.plot(tt, qd_d[:, 3], label=r'\dot{q}3d')
+    plt.plot(t, qd_d[:, 3], label=r'\dot{q}3d')
     plt.grid(True)
     ax.set_ylabel(r"$\dot{q}3\ [m]$")
     ax.set_xlim(0, max(t))
@@ -371,7 +332,7 @@ def Graphs_qds(t, qd, tt, qd_d):
 
     ax = plt.subplot(3, 2, 5)
     plt.plot(t, qd[:, 4], label=r'\dot{q}4')
-    plt.plot(tt, qd_d[:, 4], label=r'\dot{q}4d')
+    plt.plot(t, qd_d[:, 4], label=r'\dot{q}4d')
     plt.grid(True)
     ax.set_ylabel(r"$\dot{q}4 \ [m]$")
     ax.set_xlim(0, max(t))
@@ -380,7 +341,7 @@ def Graphs_qds(t, qd, tt, qd_d):
 
     ax = plt.subplot(3, 2, 6)
     plt.plot(t, qd[:, 5], label=r'\dot{q}5')
-    plt.plot(tt, qd_d[:, 5], label=r'\dot{q}5d')
+    plt.plot(t, qd_d[:, 5], label=r'\dot{q}5d')
     plt.grid(True)
     ax.set_ylabel(r"$\dot{q}5 \ [m]$")
     ax.set_xlim(0, max(t))
@@ -390,25 +351,16 @@ def Graphs_qds(t, qd, tt, qd_d):
     plt.show()
 
 
-# Positions coordinates graph
-# rtb.tools.trajectory.XYZplot(t_list, p_list, labels='x y z', stack=True)
-# plt.show()
 Graphs_position(t_list, p_list, pd_list)
 
-Graphs_qs(tg.t, tg.q, t_list, q_dlist)
+Graphs_qs(tg.t, tg.q, q_dlist)
 
-Graphs_qds(tg.t, tg.qd, t_list, qd_dlist)
+Graphs_qds(tg.t, tg.qd, qd_dlist)
 
-# Torques graph
+# Control Torques graph
 rtb.tools.trajectory.tausplot(t_list, u_list)
 plt.show()
 
 # Animation of the robt
 p560.plot(tg.q)
 plt.show()
-
-# print(t_list.shape)
-
-# print(t_list.shape)
-# print(t_list.shape)
-# print(t_list.shape)
