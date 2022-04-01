@@ -65,7 +65,7 @@ targs = {'ts': ts}
 
 
 # Function to compute the torques
-def tau(p560nf, t, q, qd, ts):
+def tau(Jaconf, t, q, qd, ts):
     global t_ant, u
     if (t > t_ant + ts):
         M = Jaconf.inertia(q)
