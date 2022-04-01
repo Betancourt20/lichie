@@ -18,7 +18,7 @@ Jaconf = Jaco.nofriction()
 
 # For time simulation
 tfin = 5
-ts = 0.01
+ts = 0.05
 
 # ------------------------------------------------------------------
 # Constraints Torques [Nm]
@@ -45,7 +45,6 @@ q = Jaco.qh  # [0, pi/4, pi, 0, pi/4, 0]
 qd = np.zeros((6,))
 qdd = np.zeros((6,))
 
-print(q)
 # Desired Values
 q_des = [pi/2, 2.9, 1.3, -2.07, 1.4, 0]
 # q_des = q
@@ -82,9 +81,10 @@ def tau(p560nf, t, q, qd, ts):
 
 print('tau computed')
 
+sargs = {'max_step': 0.05}
 #  Solving the FD and simulating it
 tg = Jaconf.fdyn(tfin, q, tau, dt=ts, targs=targs,
-                 qd_max=qd_max, tau_max=tau_max)
+                 qd_max=qd_max, tau_max=tau_max, sargs=sargs)
 print('Computed forward dynamics')
 
 # Plot

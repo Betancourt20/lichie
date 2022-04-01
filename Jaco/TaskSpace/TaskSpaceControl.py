@@ -17,22 +17,20 @@ jaco = rtb.models.DH.Jaco2()
 jaconf = jaco.nofriction()
 
 # For time simulation
-tfin = 7
-ts = 0.01
+tfin = 5
+ts = 0.05
 
 # Initial state conditions
 q = jaco.qh
 qd = np.zeros((6,))
 qdd = np.zeros((6,))
 
-# Desired Values
-# @troty(np.pi/2)  # desired Homogen matrix
-Td = transl(0.1644, -0.2184, 0.5414)
-Td2 = jaconf.fkine(q)
-print(Td)
-print(Td)
+# desired Homogen matrix. The rotations are need to be
+# in the same frame (base-frame)
+# Td = transl(0.4, -0.2184, 0.5414)@trotz(1.624)@troty(1.07)@trotx(-2.91)
+Td = SE3(0.4, -0.2184, 0.5414)@SE3.Rz(1.624)@SE3.Ry(1.07)@SE3.Rx(-2.91)
 # Control variables
-nuvs = 3.5
+nuvs = 5
 kvs = np.array([nuvs, nuvs, nuvs, nuvs, nuvs, nuvs])
 Kv = np.diag(kvs)
 
@@ -40,13 +38,33 @@ luvs = 7
 kps = np.array([luvs, luvs, luvs, luvs, luvs, luvs])
 Kp = np.diag(kps)
 
+# ------------------------------------------------------------------
+# Constraints Torques [Nm]
+t0max = 40
+t1max = 80
+t2max = 40
+t3max = 20
+t4max = 20
+t5max = 20
+tau_max = np.array([t0max, t1max, t2max, t3max, t4max, t5max])
+# Constraints angular velocity [degrees/s]
+q0d_max = math.radians(36)
+q1d_max = math.radians(36)
+q2d_max = math.radians(36)
+q3d_max = math.radians(48)
+q4d_max = math.radians(48)
+q5d_max = math.radians(48)
+qd_max = np.array([q0d_max, q1d_max, q2d_max, q3d_max, q4d_max, q5d_max])
+# print(qd_max)
+# ------------------------------------------------------------------
+
 t_ant = 0
 u = jaconf.gravload(q)
 targs = {'ts': ts}
 
-# Function to compute the torques
+# Function to compute the torque
 
-"""
+
 def tr2delta_explicit(T0, T1):
     T0 = np.array(T0)
     T1 = np.array(T1)
@@ -79,13 +97,12 @@ def tau(jaconf, t, q, qd, ts):
 t_list = []
 u_list = []
 p_list = []
-
 print('tau computed')
-
+sargs = {'max_step': 0.05}
 #  Solving the FD and simulating it
-tg = jaconf.fdyn(tfin, q, tau, dt=ts, targs=targs)
+tg = jaconf.fdyn(tfin, q, tau, dt=ts, qd_max=qd_max,
+                 tau_max=tau_max, targs=targs, sargs=sargs)
 print('Computed forward dynamics')
-
 
 t_list = np.array(t_list)
 u_list = np.array(u_list)
@@ -96,10 +113,12 @@ rtb.tools.trajectory.qplot(tg.t, tg.q)
 plt.show()
 
 # Positions coordinates graph
-rtb.tools.trajectory.XYZplot(t_list, p_list, labels='x y z')
+rtb.tools.trajectory.XYZplot(tg.t, p_list, labels='x y z')
 plt.show()
 
 # Torques graph
-rtb.tools.trajectory.tausplot(t_list, u_list)
+rtb.tools.trajectory.tausplot(tg.t, u_list)
 plt.show()
-"""
+
+jaco.plot(tg.q)
+plt.show()
