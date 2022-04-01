@@ -78,7 +78,6 @@ ext_f = np.array([0, 0, 0, 0, 0, 0])  # initial condition
 # -------------------------------------------------------------
 # Required initial parameters for computing the tau functions
 t_ant = 0
-t2_ant = 0
 u = p560nf.gravload(q)
 T = p560nf.fkine(q)
 
