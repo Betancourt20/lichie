@@ -110,8 +110,86 @@ Matrix<double,3,1> TrajGenQuintic::eval_Traj(const double& t)
     return traj_pt;
 }
 
+class Traj6D
+{
+    public:
+        Traj6D();
+        Traj6D(const Traj6D& in):
+        _trajCQ(in.trajCQ()),
+        _dirX(in.dirX()),
+        _vm(in.vm())
+        {}
+        Traj6D(const Matrix<double,3,1>& dirX,
+            const double& vm);
+        virtual ~Traj6D();
         
-        
+        TrajGenQuintic& trajCQ() const {return (TrajGenQuintic&)(this->_trajCQ);}
+        Matrix<double,3,1>& dirX() const {return (Matrix<double,3,1>&)(this->_dirX);}
+        double& vm() const {return (double&)(this->_vm);}
 
+        bool set_dirX(const Matrix<double,3,1>& dirX);
+        bool set_vm(const double& vm);
+
+        Matrix<double,3,3> eval_X(const double& t);
+        double& get_dt() const;
+        double& get_length() const;
+    protected:
+        TrajGenQuintic _trajCQ;
+        Matrix<double,3,1> _dirX;
+        double _vm;
+
+}; 
+
+Traj6D::Traj6D():
+    _trajCQ(),
+    _dirX(Matrix<double,3,1>::Zero()),
+    _vm(1)
+    {}
+
+Traj6D::Traj6D(const Matrix<double,3,1>& dirX,const double& vm)
+    {
+        if(this->set_dirX(dirX) && this->set_vm(vm))
+        {
+            double tt;
+            tt=15*this->_dirX.norm()/(8*this->_vm);
+            this->_trajCQ= TrajGenQuintic(tt,_dirX.norm());
+        }
+         
+    }
+
+Traj6D::~Traj6D()
+{}
+
+bool Traj6D::set_dirX(const Matrix<double,3,1>& dirX)
+{
+    _dirX=dirX;
+    return true;
+}
+
+bool Traj6D::set_vm(const double& vm)
+{
+    _vm=vm;
+    return true;
+}
+
+Matrix<double,3,3> Traj6D::eval_X(const double& t)
+{
+    Matrix<double,3,1> traj_s;
+    Matrix<double,3,3> traj_X;
+
+    traj_s=this->_trajCQ.eval_Traj(t);
+    traj_X=this->_dirX.normalized()*traj_s.transpose();
+    return traj_X;
+}
+
+double& Traj6D::get_dt() const
+{
+    return (this->_trajCQ.tt());
+} 
+
+double& Traj6D::get_length() const
+{
+    return (this->_trajCQ.x());
+} 
 
 #endif
