@@ -46,7 +46,7 @@ int(*MyGetCartesianCommand)(CartesianPosition &);
 
 int main(int argc, char* argv[])
 {
-    Vector3d pos_h_c(-0.2,0,0.5);
+    Vector3d pos_h_c(-0.2,0,0.8);
     Vector3d pos_start;
     Vector3d delta_pos;
     double vm=0.1;
@@ -162,7 +162,11 @@ int main(int argc, char* argv[])
                 pointToSend.Position.CartesianPosition.X =traj_pt(0,0)+pos_start(0,0);
                 pointToSend.Position.CartesianPosition.Y =traj_pt(1,0)+pos_start(1,0);
                 pointToSend.Position.CartesianPosition.Z =traj_pt(2,0)+pos_start(2,0);
-				
+		
+		if (step%200==0)
+		{
+		cout << " x_d : \t"<< pointToSend.Position.CartesianPosition.X << "\t y_d :\t" << pointToSend.Position.CartesianPosition.Y << "\t z_d :\t" << pointToSend.Position.CartesianPosition.Z << endl;
+		} 		
                 //We send the velocity vector every 5 ms as long as we want the robot to move along that vector.
 				MySendBasicTrajectory(pointToSend);
 #ifdef __linux__ 
