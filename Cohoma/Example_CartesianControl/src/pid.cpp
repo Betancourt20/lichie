@@ -58,29 +58,20 @@ PIDImpl::PIDImpl( double dt, double max, double min, Matrix<double, 6, 6> Kp, Ma
 
 Matrix<double, 6, 1> PIDImpl::calculate( Matrix<double, 6, 1> setpoint, Matrix<double, 6, 1> pv )
 {
-    cout << "I'm in " << endl;
-    cout << "Kp (" << _Kp << ")" << endl;
 
     // Calculate error
     Matrix<double, 6, 1> error = setpoint - pv;
-    cout << "1" << endl;
-     cout << "error (" << error << ")" << endl;
+     //cout << "error (" << error << ")" << endl;
     // Proportional term
     Matrix<double, 6, 1> Pout = _Kp * error;
-   cout << "2" << endl;
     // Integral term
     _integral = error + error * _dt;
     Matrix<double, 6, 1> Iout = _Ki * _integral;
-     cout << "3" << endl;
-     cout << "_pre_error (" << _pre_error << ")" << endl;
     // Derivative term
     Matrix<double, 6, 1> derivative = (error - _pre_error)/ _dt;
     Matrix<double, 6, 1> Dout = _Kd * derivative;
-    cout << "_pre_error (" << _pre_error << ")" << endl;
-  cout << "4" << endl;
     // Calculate total output
     Matrix<double, 6, 1> output = Pout + Iout + Dout;
-  cout << "5" << endl;
   /*
     // Restrict to max/min
     if( output > _max )
@@ -90,7 +81,6 @@ Matrix<double, 6, 1> PIDImpl::calculate( Matrix<double, 6, 1> setpoint, Matrix<d
 */
     // Save error to previous error
     _pre_error = error;
-  cout << "6" << endl;
     return output;
 }
 

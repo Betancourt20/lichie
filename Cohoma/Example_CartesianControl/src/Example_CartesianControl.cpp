@@ -111,31 +111,33 @@ int main(int argc, char* argv[])
 		KinovaDevice list[MAX_KINOVA_DEVICE];
 
 		int devicesCount = MyGetDevices(list, result);
-        
-        cout << "Getting Current Position :" << result << endl;
-        (*MyGetCartesianPosition)(CurrentPosition);
-       
-        Kp << 1,0,0,0,0,0,
-              0,1,0,0,0,0,
-              0,0,1,0,0,0,
-              0,0,0,1,0,0,
-              0,0,0,0,1,0,
-              0,0,0,0,0,1;
-        
-        Kd << 0,0,0,0,0,0,
-              0,0,0,0,0,0,
-              0,0,0,0,0,0,
-              0,0,0,0,0,0,
-              0,0,0,0,0,0,
-              0,0,0,0,0,0;
               
-        Ki << 1,0,0,0,0,0,
-              0,1,0,0,0,0,
-              0,0,1,0,0,0,
-              0,0,0,1,0,0,
-              0,0,0,0,1,0,
-              0,0,0,0,0,1;     
+       double kpx = 2, kpy=2, kpz=2, kpwx=0, kpwy=0, kpwz=0;
+       
+        Kp << kpx,0,0,0,0,0,
+              0,kpy,0,0,0,0,
+              0,0,kpz,0,0,0,
+              0,0,0,kpwx,0,0,
+              0,0,0,0,kpwy,0,
+              0,0,0,0,0,kpwz;
+        
+        double kdx = 0.05, kdy=0.05, kdz=0.05, kdwx=0, kdwy=0, kdwz=0;
+        Kd << kdx,0,0,0,0,0,
+              0,kdy,0,0,0,0,
+              0,0,kdz,0,0,0,
+              0,0,0,kdwx,0,0,
+              0,0,0,0,kdwy,0,
+              0,0,0,0,0,kdwy;
+              
+        double kix = 0.0, kiy=0, kiz=0, kiwx=0, kiwy=0, kiwz=0;      
+        Ki << kix,0,0,0,0,0,
+              0,kiy,0,0,0,0,
+              0,0,kiz,0,0,0,
+              0,0,0,kiwx,0,0,
+              0,0,0,0,kiwy,0,
+              0,0,0,0,0,kiwz;     
                       
+          //PID2 pid2 = PID2(0.1, 100, -100, 0.1, 0.01, 0.5);
          PID pid = PID(0.1, 100, -100, Kp, Kd, Ki);
         
 		for (int i = 0; i < devicesCount; i++)
@@ -144,6 +146,7 @@ int main(int argc, char* argv[])
 
 			//Setting the current device as the active device.
 			MySetActiveDevice(list[i]);
+			
 
 			cout << "Send the robot to HOME position" << endl;
 			MyMoveHome();
@@ -153,23 +156,67 @@ int main(int argc, char* argv[])
 
 			TrajectoryPoint pointToSend;
 			pointToSend.InitStruct();
-			            
-            pos_des <<  0,
-                        0, 
-                        0, 
-                        0,
-                        0,
-                        0;
-           
-            pos << CurrentPosition.Coordinates.X,
-                   CurrentPosition.Coordinates.Y, 
-                   CurrentPosition.Coordinates.Z, 
-                   CurrentPosition.Coordinates.ThetaX,
-                   CurrentPosition.Coordinates.ThetaY,
-                   CurrentPosition.Coordinates.ThetaZ;
-                   
-            MatrixXd xd_des = pid.calculate(pos_des, pos);
+		
+		/*	 Pos home standard		
+		pos_des <<  0.21146,
+                        -0.265456, 
+                        0.504568, 
+                        1.66124,
+                        1.108,
+                        0.120692;	
 
+		*/	            
+            pos_des <<  0.21146,
+                        -0.265456, 
+                        0.804568, 
+                        1.66124,
+                        1.108,
+                        0.120692;
+           
+			
+	       	for (int i = 0; i < 300; i++)
+			{
+			
+		//cout << "Tracking desired position :" << result << endl;
+       	       (*MyGetCartesianPosition)(CurrentPosition);
+       	       
+	       	   pos << CurrentPosition.Coordinates.X,
+		           CurrentPosition.Coordinates.Y, 
+		           CurrentPosition.Coordinates.Z, 
+		           CurrentPosition.Coordinates.ThetaX,
+		           CurrentPosition.Coordinates.ThetaY,
+		           CurrentPosition.Coordinates.ThetaZ;
+                   
+            			
+	//We specify that this point will be used an angular(joint by joint) velocity vector.
+			
+			MatrixXd xd_des = pid.calculate(pos_des, pos);
+			//cout << "Pos" << pos << endl;
+			//cout << "Pos_des" << xd_des(0) << endl;	
+			
+			pointToSend.Position.Type = CARTESIAN_VELOCITY;
+
+			pointToSend.Position.CartesianPosition.X = xd_des(0);
+			pointToSend.Position.CartesianPosition.Y = xd_des(1); //Move along Y axis at 20 cm per second
+			pointToSend.Position.CartesianPosition.Z = xd_des(2);
+			pointToSend.Position.CartesianPosition.ThetaX = 0;
+			pointToSend.Position.CartesianPosition.ThetaY = 0;
+			pointToSend.Position.CartesianPosition.ThetaZ = 0;
+
+			pointToSend.Position.Fingers.Finger1 = 0;
+			pointToSend.Position.Fingers.Finger2 = 0;
+			pointToSend.Position.Fingers.Finger3 = 0;	
+       	       
+			//We send the velocity vector every 5 ms as long as we want the robot to move along that vector.
+				MySendBasicTrajectory(pointToSend);
+#ifdef __linux__ 
+		 		usleep(5000);
+#elif _WIN32
+				Sleep(5);	
+#endif
+			}	
+				
+							/*
 			//We specify that this point will be used an angular(joint by joint) velocity vector.
 			pointToSend.Position.Type = CARTESIAN_VELOCITY;
 
@@ -194,7 +241,10 @@ int main(int argc, char* argv[])
 				Sleep(5);	
 #endif
 			}
-
+			
+			cout << "Send the robot to HOME position" << endl;
+			MyMoveHome();*/
+/*
 			pointToSend.Position.CartesianPosition.Y = 0;
 			pointToSend.Position.CartesianPosition.Z = 0.1;
 
@@ -234,6 +284,7 @@ int main(int argc, char* argv[])
 			MySendBasicTrajectory(pointToSend);
 
 			cout << "*********************************" << endl << endl << endl;
+			*/
 		}
 
 		cout << endl << "C L O S I N G   A P I" << endl;
