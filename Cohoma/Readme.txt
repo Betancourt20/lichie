@@ -1,6 +1,8 @@
 To build the project, do the following steps:
--  Copy the folders Example_CartesianControl, _HEADERS and CMakeLists
-- Create a build folder
-- cd your_build folder
-- cmake -S ../
-- make
+- install eigen and update link:
+` sudo ln -s /usr/include/eigen3/Eigen /usr/local/include/`
+- Create a build folder and compile:
+` mkdir -p build`
+` cd build `
+` cmake -S ../ `
+` make `
