@@ -129,6 +129,8 @@ class Traj6D
 
         bool set_dirX(const Matrix<double,3,1>& dirX);
         bool set_vm(const double& vm);
+        bool update_dirX(const Matrix<double,3,1>& dirX);
+        bool update_vm(const double& vm);
 
         Matrix<double,3,3> eval_X(const double& t);
         double& get_dt() const;
@@ -166,10 +168,40 @@ bool Traj6D::set_dirX(const Matrix<double,3,1>& dirX)
     return true;
 }
 
+bool Traj6D::update_dirX(const Matrix<double,3,1>& dirX)
+{
+    if(this->set_dirX(dirX))
+    {
+        double tt;
+        tt=15*this->_dirX.norm()/(8*this->_vm);
+        this->_trajCQ= TrajGenQuintic(tt,_dirX.norm());
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 bool Traj6D::set_vm(const double& vm)
 {
     _vm=vm;
     return true;
+}
+
+bool Traj6D::update_vm(const double& vm)
+{
+    if(this->set_vm(vm))
+    {
+        double tt;
+        tt=15*this->_dirX.norm()/(8*this->_vm);
+        this->_trajCQ= TrajGenQuintic(tt,_dirX.norm());
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 Matrix<double,3,3> Traj6D::eval_X(const double& t)

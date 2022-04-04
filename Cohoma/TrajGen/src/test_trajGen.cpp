@@ -125,17 +125,25 @@ int main()
     Vector3d deltaV(0.4,-0.2,0.3);
 
     Traj6D trajX(deltaX,vm);
-    Traj6D trajV(deltaV,vm);
-    std::cout << " Trajectories duration : \n"
-              << "X :\t" << trajX.get_dt() << "\t length :\t" << trajX.get_length() << "\n"
-              << "V :\t" << trajV.get_dt() << "\t length :\t" << trajV.get_length() << "\n";
+    std::cout << " Trajectories duration : \t"<< trajX.get_dt() 
+            << "\t length :\t" << trajX.get_length() << "\n";
 
     std::tuple<std::vector<double>, std::vector<double>, std::vector<double>,
         std::vector<double>, std::vector<double>, std::vector<double>,   std::vector<double>> Xdt= computeTraj6D( trajX,1.5*trajX.get_dt(), 1000);
     plotXd(Xdt);
 
-    std::tuple<std::vector<double>, std::vector<double>, std::vector<double>,
-        std::vector<double>, std::vector<double>, std::vector<double>,   std::vector<double>> Vdt= computeTraj6D( trajV,1.5*trajV.get_dt(), 1000);
-    plotXd(Vdt);
+    trajX.update_dirX(deltaV);
+    std::cout << " Trajectories duration : \t"<< trajX.get_dt() 
+            << "\t length :\t" << trajX.get_length() << "\n";
+
+    Xdt= computeTraj6D( trajX,1.5*trajX.get_dt(), 1000);
+    plotXd(Xdt);
+
+    trajX.update_vm(0.05);
+    std::cout << " Trajectories duration : \t"<< trajX.get_dt() 
+            << "\t length :\t" << trajX.get_length() << "\n";
+
+    Xdt= computeTraj6D( trajX,1.5*trajX.get_dt(), 1000);
+    plotXd(Xdt);
 
 }

@@ -15,17 +15,27 @@ if (UNIX)
 endif (UNIX)
 
 include_directories(_HEADERS)
+include_directories(TrajGen/include/TrajGen)
 
 SET(SRC_FILES
     Example_CartesianControl/src/Example_CartesianControl.cpp
     Example_CartesianControl/src/pid.cpp
 )
 
+SET(SRC_FILES2
+    Traj_CartesianOL/src/Test_TrajOL.cpp
+)
+
 ADD_EXECUTABLE(${PROJECT_NAME}
 	${SRC_FILES}
 )
 
+ADD_EXECUTABLE(Test_CartesianOL
+	${SRC_FILES2}
+)
+
 if (UNIX)
     target_link_libraries(Example_CartesianControl ${CMAKE_DL_LIBS})
+    target_link_libraries(Test_CartesianOL ${CMAKE_DL_LIBS})
 endif (UNIX)
 
