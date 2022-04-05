@@ -43,7 +43,34 @@ int(*MySetActiveDevice)(KinovaDevice device);
 int(*MyMoveHome)();
 int(*MyInitFingers)();
 int(*MyGetCartesianCommand)(CartesianPosition &);
+int(*MyGetAngularCommand)(AngularPosition &);
 
+
+
+void HomePosition(){
+    
+  cout << "Going to Home Position";   
+        TrajectoryPoint pointToSend;
+        pointToSend.InitStruct();
+    		AngularPosition currentCommand;
+
+        //We specify that this point will be an angular(joint by joint) position.
+			pointToSend.Position.Type = ANGULAR_POSITION;
+
+    //We get the actual angular command of the robot.
+    MyGetAngularCommand(currentCommand);
+
+    pointToSend.Position.Actuators.Actuator1 = currentCommand.Actuators.Actuator1 + 180;
+    pointToSend.Position.Actuators.Actuator2 = currentCommand.Actuators.Actuator2 + 56;
+    pointToSend.Position.Actuators.Actuator3 = currentCommand.Actuators.Actuator3 + 27 ;
+    pointToSend.Position.Actuators.Actuator4 = currentCommand.Actuators.Actuator4 + 266;
+    pointToSend.Position.Actuators.Actuator5 = currentCommand.Actuators.Actuator5 + 176;
+    pointToSend.Position.Actuators.Actuator6 = currentCommand.Actuators.Actuator6 + 288;
+    
+    cout << "*********************************" << endl;
+	cout << "Sending the first point to the robot." << endl;
+	MySendBasicTrajectory(pointToSend);
+}
 
 int main(int argc, char* argv[])
 {
@@ -74,6 +101,8 @@ int main(int argc, char* argv[])
 	MySendBasicTrajectory = (int (*)(TrajectoryPoint)) dlsym(commandLayer_handle,"SendBasicTrajectory");
 	MyGetCartesianCommand = (int (*)(CartesianPosition &)) dlsym(commandLayer_handle,"GetCartesianCommand");
 	MyGetCartesianPosition = (int (*)(CartesianPosition &)) dlsym(commandLayer_handle,"GetCartesianPosition");
+    MyGetAngularCommand = (int (*)(AngularPosition &)) dlsym(commandLayer_handle,"GetAngularCommand");
+
 #elif _WIN32
 	//We load the API.
 	commandLayer_handle = LoadLibrary(L"CommandLayerWindows.dll");
@@ -88,7 +117,7 @@ int main(int argc, char* argv[])
 	MySendBasicTrajectory = (int(*)(TrajectoryPoint)) GetProcAddress(commandLayer_handle, "SendBasicTrajectory");
 	MyGetCartesianCommand = (int(*)(CartesianPosition &)) GetProcAddress(commandLayer_handle, "GetCartesianCommand");
    	MyGetCartesianPosition = (int(*)(CartesianPosition &)) GetProcAddress(commandLayer_handle, "GetCartesianPosition");
-
+    MyGetAngularCommand = (int(*)(AngularPosition &)) GetProcAddress(commandLayer_handle, "GetAngularCommand");
 #endif
 
 	//Verify that all functions has been loaded correctly
@@ -149,6 +178,7 @@ int main(int argc, char* argv[])
 			
 
 			cout << "Send the robot to HOME position" << endl;
+            HomePosition();
 			MyMoveHome();
 
 			cout << "Initializing the fingers" << endl;
