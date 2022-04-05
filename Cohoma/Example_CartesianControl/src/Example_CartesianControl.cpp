@@ -3,7 +3,7 @@
 #endif
 #include "KinovaTypes.h"
 #include <iostream>
-#ifdef __linux__ 
+#ifdef __linux__
 #include <dlfcn.h>
 #include <vector>
 #include "Kinova.API.CommLayerUbuntu.h"
@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include "Eigen/Dense"
 #include "pid.h"
+#include "Traj_gen.hpp"
 #elif _WIN32
 #include <Windows.h>
 #include "CommunicationLayer.h"
@@ -27,7 +28,7 @@ using Eigen::VectorXf;
 
 
 //A handle to the API.
-#ifdef __linux__ 
+#ifdef __linux__
 void * commandLayer_handle;
 #elif _WIN32
 HINSTANCE commandLayer_handle;
@@ -53,14 +54,21 @@ int main(int argc, char* argv[])
     MatrixXd pos(6,1);
     MatrixXd pos_des(6,1);
     CartesianPosition currentCommand;
-	int programResult = 0;
-  	CartesianPosition CurrentPosition;
+    int programResult = 0;
+    CartesianPosition CurrentPosition;
+    Vector3d pos_h_c(-0.4,0,0.8);
+    Vector3d pos_start;
+    Vector3d delta_pos;
+    double vm=0.02;
+    double duration;
+    double t_traj;
+    int nb_step;
 
 
 
 
 
-#ifdef __linux__ 
+#ifdef __linux__
 	//We load the API
 	commandLayer_handle = dlopen("Kinova.API.USBCommandLayerUbuntu.so",RTLD_NOW|RTLD_GLOBAL);
 
@@ -92,7 +100,7 @@ int main(int argc, char* argv[])
 #endif
 
 	//Verify that all functions has been loaded correctly
-	if ((MyInitAPI == NULL) || (MyCloseAPI == NULL) || (MySendBasicTrajectory == NULL) || (MyGetCartesianPosition == NULL) || 
+	if ((MyInitAPI == NULL) || (MyCloseAPI == NULL) || (MySendBasicTrajectory == NULL) || (MyGetCartesianPosition == NULL) ||
 		(MyGetDevices == NULL) || (MySetActiveDevice == NULL) || (MyGetCartesianCommand == NULL) ||
 		(MyMoveHome == NULL) ||  (MyInitFingers == NULL))
 
@@ -111,16 +119,16 @@ int main(int argc, char* argv[])
 		KinovaDevice list[MAX_KINOVA_DEVICE];
 
 		int devicesCount = MyGetDevices(list, result);
-              
+
        double kpx = 2, kpy=2, kpz=2, kpwx=0, kpwy=0, kpwz=0;
-       
+
         Kp << kpx,0,0,0,0,0,
               0,kpy,0,0,0,0,
               0,0,kpz,0,0,0,
               0,0,0,kpwx,0,0,
               0,0,0,0,kpwy,0,
               0,0,0,0,0,kpwz;
-        
+
         double kdx = 0.05, kdy=0.05, kdz=0.05, kdwx=0, kdwy=0, kdwz=0;
         Kd << kdx,0,0,0,0,0,
               0,kdy,0,0,0,0,
@@ -128,25 +136,25 @@ int main(int argc, char* argv[])
               0,0,0,kdwx,0,0,
               0,0,0,0,kdwy,0,
               0,0,0,0,0,kdwy;
-              
-        double kix = 0.0, kiy=0, kiz=0, kiwx=0, kiwy=0, kiwz=0;      
+
+        double kix = 0.005, kiy=0, kiz=0, kiwx=0, kiwy=0, kiwz=0;
         Ki << kix,0,0,0,0,0,
               0,kiy,0,0,0,0,
               0,0,kiz,0,0,0,
               0,0,0,kiwx,0,0,
               0,0,0,0,kiwy,0,
-              0,0,0,0,0,kiwz;     
-                      
+              0,0,0,0,0,kiwz;
+
           //PID2 pid2 = PID2(0.1, 100, -100, 0.1, 0.01, 0.5);
          PID pid = PID(0.1, 100, -100, Kp, Kd, Ki);
-        
+
 		for (int i = 0; i < devicesCount; i++)
 		{
 			cout << "Found a robot on the USB bus (" << list[i].SerialNumber << ")" << endl;
 
 			//Setting the current device as the active device.
 			MySetActiveDevice(list[i]);
-			
+
 
 			cout << "Send the robot to HOME position" << endl;
 			MyMoveHome();
@@ -156,73 +164,78 @@ int main(int argc, char* argv[])
 
 			TrajectoryPoint pointToSend;
 			pointToSend.InitStruct();
-		
-		/*	 Pos home standard		
-		pos_des <<  0.21146,
-                        -0.265456, 
-                        0.504568, 
-                        1.66124,
-                        1.108,
-                        0.120692;	
 
-		*/	            
-            pos_des <<  0.21146,
-                        -0.265456, 
-                        0.804568, 
+		/*	 Pos home standard
+		pos_des <<  0.21146,
+                        -0.265456,
+                        0.504568,
                         1.66124,
                         1.108,
                         0.120692;
-           
-			
-	       	for (int i = 0; i < 300; i++)
+
+
+            pos_des <<  0.21146,
+                       0,
+                        0.704568,
+                        1.66124,
+                        1.108,
+                        0.120692;*/
+
+           (*MyGetCartesianPosition)(CurrentPosition);
+       pos_start << CurrentPosition.Coordinates.X,
+        CurrentPosition.Coordinates.Y,
+        CurrentPosition.Coordinates.Z;
+
+            delta_pos=pos_h_c-pos_start;
+
+            Traj6D trajX(delta_pos,vm);
+            duration=trajX.get_dt();
+
+            Matrix<double,3,3> traj_pt;
+            cout << "*********************************" << endl;
+                std::cout << " Trajectories duration : \t"<< trajX.get_dt()
+            << "\t length :\t" << trajX.get_length() << "m \n";
+
+		nb_step=int(duration/0.005);
+	      for (int step = 0; step < (nb_step+10); step++)
+		      //for (int i = 0; i<500; i++)
 			{
-			
-		//cout << "Tracking desired position :" << result << endl;
+			t_traj=(step*0.005);
+			traj_pt=trajX.eval_X(t_traj);
+		cout << "Tracking desired position :" << result << endl;
        	       (*MyGetCartesianPosition)(CurrentPosition);
-       	       
-	       	   pos << CurrentPosition.Coordinates.X,
-		           CurrentPosition.Coordinates.Y, 
-		           CurrentPosition.Coordinates.Z, 
+       	      pos_des << traj_pt(0,0)+pos_start(0,0),
+		           traj_pt(1,0)+pos_start(1,0),
+		           traj_pt(2,0)+pos_start(2,0),
 		           CurrentPosition.Coordinates.ThetaX,
 		           CurrentPosition.Coordinates.ThetaY,
 		           CurrentPosition.Coordinates.ThetaZ;
-                   
-            			
+
+	       	   pos << CurrentPosition.Coordinates.X,
+		           CurrentPosition.Coordinates.Y,
+		           CurrentPosition.Coordinates.Z,
+		           CurrentPosition.Coordinates.ThetaX,
+		           CurrentPosition.Coordinates.ThetaY,
+		           CurrentPosition.Coordinates.ThetaZ;
+
 	//We specify that this point will be used an angular(joint by joint) velocity vector.
-			
+
 			MatrixXd xd_des = pid.calculate(pos_des, pos);
+	            if (step%200==0)
+				{
+				cout << " pos_des : \t"<< pos_des.transpose() << endl;
+				cout << " pos_mes : \t"<< pos.transpose() << endl;
+				cout << " xd_des : \t"<< xd_des.transpose() << endl<< endl;
+				}
+
 			//cout << "Pos" << pos << endl;
-			//cout << "Pos_des" << xd_des(0) << endl;	
-			
-			pointToSend.Position.Type = CARTESIAN_VELOCITY;
+			//cout << "Pos_des" << xd_des(0) << endl;
 
-			pointToSend.Position.CartesianPosition.X = xd_des(0);
-			pointToSend.Position.CartesianPosition.Y = xd_des(1); //Move along Y axis at 20 cm per second
-			pointToSend.Position.CartesianPosition.Z = xd_des(2);
-			pointToSend.Position.CartesianPosition.ThetaX = 0;
-			pointToSend.Position.CartesianPosition.ThetaY = 0;
-			pointToSend.Position.CartesianPosition.ThetaZ = 0;
+			pointToSend.Position.Type = CARTESIAN_POSITION;
 
-			pointToSend.Position.Fingers.Finger1 = 0;
-			pointToSend.Position.Fingers.Finger2 = 0;
-			pointToSend.Position.Fingers.Finger3 = 0;	
-       	       
-			//We send the velocity vector every 5 ms as long as we want the robot to move along that vector.
-				MySendBasicTrajectory(pointToSend);
-#ifdef __linux__ 
-		 		usleep(5000);
-#elif _WIN32
-				Sleep(5);	
-#endif
-			}	
-				
-							/*
-			//We specify that this point will be used an angular(joint by joint) velocity vector.
-			pointToSend.Position.Type = CARTESIAN_VELOCITY;
-
-			pointToSend.Position.CartesianPosition.X = 0;
-			pointToSend.Position.CartesianPosition.Y = -0.15; //Move along Y axis at 20 cm per second
-			pointToSend.Position.CartesianPosition.Z = 0;
+			pointToSend.Position.CartesianPosition.X = traj_pt(0,0)+pos_start(0,0);//xd_des(0);
+			pointToSend.Position.CartesianPosition.Y = traj_pt(1,0)+pos_start(1,0);//xd_des(1); //Move along Y axis at 20 cm per second
+			pointToSend.Position.CartesianPosition.Z = traj_pt(2,0)+pos_start(2,0);//xd_des(2);
 			pointToSend.Position.CartesianPosition.ThetaX = 0;
 			pointToSend.Position.CartesianPosition.ThetaY = 0;
 			pointToSend.Position.CartesianPosition.ThetaZ = 0;
@@ -231,68 +244,24 @@ int main(int argc, char* argv[])
 			pointToSend.Position.Fingers.Finger2 = 0;
 			pointToSend.Position.Fingers.Finger3 = 0;
 
-			for (int i = 0; i < 200; i++)
-			{
-				//We send the velocity vector every 5 ms as long as we want the robot to move along that vector.
-				MySendBasicTrajectory(pointToSend);
-#ifdef __linux__ 
-		 		usleep(5000);
-#elif _WIN32
-				Sleep(5);	
-#endif
-			}
-			
-			cout << "Send the robot to HOME position" << endl;
-			MyMoveHome();*/
-/*
-			pointToSend.Position.CartesianPosition.Y = 0;
-			pointToSend.Position.CartesianPosition.Z = 0.1;
+			//We send the velocity vector every 5 ms as long as we want the robot to move along that vector.
+        				MySendBasicTrajectory(pointToSend);
+        #ifdef __linux__
+        		 		usleep(5000);
+        #elif _WIN32
+        				Sleep(5);
+        #endif
 
-			for (int i = 0; i < 200; i++)
-			{
-				//We send the velocity vector every 5 ms as long as we want the robot to move along that vector.
-				MySendBasicTrajectory(pointToSend);
-#ifdef __linux__ 
-		 		usleep(5000);
-#elif _WIN32
-				Sleep(5);	
-#endif
-			}
+			   }
 
-			cout << "Send the robot to HOME position" << endl;
-			MyMoveHome();
-
-			//We specify that this point will be an angular(joint by joint) position.
-			pointToSend.Position.Type = CARTESIAN_POSITION;
-
-			//We get the actual angular command of the robot.
-			MyGetCartesianCommand(currentCommand);
-
-			pointToSend.Position.CartesianPosition.X = currentCommand.Coordinates.X;
-			pointToSend.Position.CartesianPosition.Y = currentCommand.Coordinates.Y - 0.1f;
-			pointToSend.Position.CartesianPosition.Z = currentCommand.Coordinates.Z;
-			pointToSend.Position.CartesianPosition.ThetaX = currentCommand.Coordinates.ThetaX;
-			pointToSend.Position.CartesianPosition.ThetaY = currentCommand.Coordinates.ThetaY;
-			pointToSend.Position.CartesianPosition.ThetaZ = currentCommand.Coordinates.ThetaZ;
-
-			cout << "*********************************" << endl;
-			cout << "Sending the first point to the robot." << endl;
-			MySendBasicTrajectory(pointToSend);
-
-			pointToSend.Position.CartesianPosition.Z = currentCommand.Coordinates.Z + 0.1f;
-			cout << "Sending the second point to the robot." << endl;
-			MySendBasicTrajectory(pointToSend);
-
-			cout << "*********************************" << endl << endl << endl;
-			*/
-		}
+  		}
 
 		cout << endl << "C L O S I N G   A P I" << endl;
 		result = (*MyCloseAPI)();
 		programResult = 1;
 	}
 
-#ifdef __linux__ 
+#ifdef __linux__
 	dlclose(commandLayer_handle);
 #elif _WIN32
 	FreeLibrary(commandLayer_handle);
