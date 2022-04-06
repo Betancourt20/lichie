@@ -26,12 +26,9 @@ using Eigen::MatrixXf;
 using Eigen::VectorXf;
 
 
-//A handle to the API.
-#ifdef __linux__
+//A handle to the API._
 void * commandLayer_handle;
-#elif _WIN32
-HINSTANCE commandLayer_handle;
-#endif
+
 
 //Function pointers to the functions we need
 int(*MyInitAPI)();
@@ -121,126 +118,36 @@ int main(int argc, char* argv[])
 		TrajectoryPoint pointToSend;
 		pointToSend.InitStruct();
 
-		/*	 Pos home standard
-		pos_des <<  0.21146,
-                        -0.265456,
-                        0.504568,
-                        1.66124,
-                        1.108,
-                        0.120692;
+		//	 Pos home standard
+	/*	pos_des <<  0.21146,
+              -0.265456,
+              0.504568,
+              1.66124,
+              1.108,
+              0.120692;*/
 
-		*/
 
-        pos_des <<  -0.183982,
+
+       pos_des <<  -0.183982,  // Manipulator up position
                     0.00861586,
                     0.156995,
                     0.831117,
                     1.3696,
                     0.735864;
 
+      for (int i = 0; i < 200; i++)
+      {
         GoToPoint(pointToSend, pos_des);
-/*
-       	for (int i = 0; i < 300; i++)
-		{
+        usleep(5000);
 
-        pointToSend.Position.Type = CARTESIAN_POSITION;
-
-		pointToSend.Position.CartesianPosition.X = pos_des(0);
-		pointToSend.Position.CartesianPosition.Y = pos_des(1);
-		pointToSend.Position.CartesianPosition.Z = pos_des(2);
-		pointToSend.Position.CartesianPosition.ThetaX = pos_des(3);
-		pointToSend.Position.CartesianPosition.ThetaY = pos_des(4);
-		pointToSend.Position.CartesianPosition.ThetaZ = pos_des(5);
-
-		pointToSend.Position.Fingers.Finger1 = 0;
-		pointToSend.Position.Fingers.Finger2 = 0;
-		pointToSend.Position.Fingers.Finger3 = 0;
-        //add a velocity limitation
-        pointToSend.Limitations.speedParameter1 = 0.10; // translation limited to 0.10 m/sec
-        pointToSend.Limitations.speedParameter2 = 0.5; //rotation limited to 05. rad/sec
-        pointToSend.Limitations.speedParameter3 = 0; //speed parameter for the fingers. Not considered in the trajectory functions
-        //enable limitations
-        pointToSend.LimitationsActive = 1;
-        pointToSend.Position.HandMode = HAND_NOMOVEMENT; // no movement from the fingers
-		//We send the velocity vector every 5 ms as long as we want the robot to move along that vector.
-				(*MySendBasicTrajectory)(pointToSend);
-
-	 		usleep(5000);
-		}
-
-        pos_des << 0.0418865,
+      }
+      /*
+        pos_des << 0.0418865, // Ready to push position
                    0.634523,
                    0.224163,
                    -0.329754,
                    1.36459,
-                   2.88776;
-
-
-      for (int i = 0; i < 300; i++)
-        {
-
-
-          pointToSend.Position.Type = CARTESIAN_POSITION;
-
-          pointToSend.Position.CartesianPosition.X = pos_des(0);//xd_des(0);
-          pointToSend.Position.CartesianPosition.Y = pos_des(1);//xd_des(1);
-          pointToSend.Position.CartesianPosition.Z = pos_des(2);//xd_des(2);
-          pointToSend.Position.CartesianPosition.ThetaX = pos_des(3);
-          pointToSend.Position.CartesianPosition.ThetaY = pos_des(4);
-          pointToSend.Position.CartesianPosition.ThetaZ = pos_des(5);
-
-          pointToSend.Position.Fingers.Finger1 = 0;
-          pointToSend.Position.Fingers.Finger2 = 0;
-          pointToSend.Position.Fingers.Finger3 = 0;
-          //add a velocity limitation
-          pointToSend.Limitations.speedParameter1 = 0.10; // translation limited to 0.10 m/sec
-          pointToSend.Limitations.speedParameter2 = 0.5; //rotation limited to 05. rad/sec
-          pointToSend.Limitations.speedParameter3 = 0; //speed parameter for the fingers. Not considered in the trajectory functions
-          //enable limitations
-          pointToSend.LimitationsActive = 1;
-          pointToSend.Position.HandMode = HAND_NOMOVEMENT; // no movement from the fingers
-          //We send the velocity vector every 5 ms as long as we want the robot to move along that vector.
-          (*MySendBasicTrajectory)(pointToSend);
-        usleep(5000);
-
-  }
-  usleep(1000000);
-
-  pos_des  <<  0.3,
-               0.634523,
-               0.224163,
-               -0.329754,
-               1.36459,
-               2.88776;
-
-
-          for (int i = 0; i < 300; i++)
-        {
-
-
-        pointToSend.Position.Type = CARTESIAN_POSITION;
-
-        pointToSend.Position.CartesianPosition.X = pos_des(0);//xd_des(0);
-        pointToSend.Position.CartesianPosition.Y = pos_des(1);//xd_des(1);
-        pointToSend.Position.CartesianPosition.Z = pos_des(2);//xd_des(2);
-        pointToSend.Position.CartesianPosition.ThetaX = pos_des(3);
-        pointToSend.Position.CartesianPosition.ThetaY = pos_des(4);
-        pointToSend.Position.CartesianPosition.ThetaZ = pos_des(5);
-
-        pointToSend.Position.Fingers.Finger1 = 0;
-        pointToSend.Position.Fingers.Finger2 = 0;
-        pointToSend.Position.Fingers.Finger3 = 0;
-        //add a velocity limitation
-        pointToSend.Limitations.speedParameter1 = 0.10; // translation limited to 0.10 m/sec
-        pointToSend.Limitations.speedParameter2 = 0.5; //rotation limited to 05. rad/sec
-        pointToSend.Limitations.speedParameter3 = 0; //speed parameter for the fingers. Not considered in the trajectory functions
-        //enable limitations
-        pointToSend.LimitationsActive = 1;
-        pointToSend.Position.HandMode = HAND_NOMOVEMENT; // no movement from the fingers
-        //We send the velocity vector every 5 ms as long as we want the robot to move along that vector.
-          (*MySendBasicTrajectory)(pointToSend);
-        usleep(5000);
-    }*/
+                   2.88776;*/
 
 
 	}
