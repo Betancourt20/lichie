@@ -16,6 +16,8 @@ Jaconf = Jaco.nofriction()
 # For time simulation
 tfin = 7
 ts = 0.05
+# mass of the robot = 4.4 kg
+# Max linear vel =  20cm/s
 
 # Initial state conditions
 q = Jaco.qh
@@ -46,15 +48,25 @@ Td = SE3(0.1644, -0.2184, 0.5414)@SE3.Rz(1.624)@SE3.Ry(1.07)@SE3.Rx(-2.91)
 
 # ----------------------------------------------------------------
 # Control variables
-v1 = 1
-varsgamma = np.array([v1, v1, v1, v1, v1, v1])
+v1 = 6.36
+v2 = 11.14
+v3 = 19.10
+v4 = 0.21
+v5 = 0.21
+v6 = 0.21
+varsgamma = np.array([v1, v2, v3, v4, v5, v6])
 VarGamma = np.diag(varsgamma)
 
-nuvs = 12
-kvs = np.array([nuvs, nuvs, nuvs, nuvs, nuvs, nuvs])
+nuvs_1 = 18.18
+nuvs_2 = 31.82
+nuvs_3 = 54.55
+nuvs_4 = 0.85
+nuvs_5 = 0.85
+nuvs_6 = 0.85
+kvs = np.array([nuvs_1, nuvs_2, nuvs_3, nuvs_4, nuvs_5, nuvs_6])
 Dd = np.diag(kvs)
 
-luvs = 80
+luvs = 0
 kps = np.array([luvs, luvs, luvs, luvs, luvs, luvs])
 Kp = np.diag(kps)
 
@@ -90,9 +102,9 @@ qd_max = np.array([q0d_max, q1d_max, q2d_max, q3d_max, q4d_max, q5d_max])
 t0 = 0
 t1 = 2.5
 t2 = 3.5
-f = 3  # Amount of force
+f = 0.2  # Amount of force
 # vector of exteranl forces. [fx,fy.fz,fwx,fwy,fwz]
-F = np.array([f, 0, 0, 0, 0, 0])  # Here the user can chose the axis
+F = np.array([-f, 0, 0, 0, 0, 0])  # Here the user can chose the axis
 ext_f = np.array([0, 0, 0, 0, 0, 0])  # initial condition
 # -------------------------------------------------------------
 # Required initial parameters for computing the tau functions
@@ -142,7 +154,7 @@ def tau(Jaconf, t, q, qd, VarGamma, Dd, Kp, F, t0, t1, t2, ts):
         T = Jaconf.fkine(q)
         Ext_force = F_ext(Jaconf, t, q, F, t0, t1, t2, ts)
         J_dot = Jaconf.jacob_dot(q, qd)
-        x_tilde = tr2delta_explicit(Td, T)
+        x_tilde = tr2delta_explicit(T, T)
         x_tilde = x_tilde.reshape(6,)
         xdot = J@qd
         nu = np.linalg.pinv(J)@np.linalg.pinv(VarGamma)@(-Kp @

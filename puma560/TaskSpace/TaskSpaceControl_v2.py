@@ -26,7 +26,6 @@ qd = np.zeros((6,))
 qdd = np.zeros((6,))
 
 # Desired Values
-# Td = SE3(0.3963, 0.1500, 0.6574)@SE3.Ry(np.pi/2) # This put some errors, I dont know why ?
 Td = transl(0.3963, -0.1501, 0.6575)@troty(np.pi/2)  # desired Homogen matrix
 
 # Control variables

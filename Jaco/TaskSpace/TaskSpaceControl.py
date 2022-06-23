@@ -24,10 +24,11 @@ ts = 0.05
 q = jaco.qh
 qd = np.zeros((6,))
 qdd = np.zeros((6,))
-
+T1 = jaconf.fkine(q)
+print('T1 :',T1)
 # desired Homogen matrix. The rotations are need to be
 # in the same frame (base-frame)
-# Td = transl(0.4, -0.2184, 0.5414)@trotz(1.624)@troty(1.07)@trotx(-2.91)
+# Intitial condition x=01644, y= -0.2184, z= 0.5414
 Td = SE3(0.4, -0.2184, 0.5414)@SE3.Rz(1.624)@SE3.Ry(1.07)@SE3.Rx(-2.91)
 # Control variables
 nuvs = 5
