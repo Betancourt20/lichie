@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../_HEADERS/Kinova.API.CommLayerUbuntu.h
+vector
+-
+
+../_HEADERS/Kinova.API.EthCommLayerUbuntu.h
+vector
+-
+
+../_HEADERS/Kinova.API.EthCommandLayerUbuntu.h
+vector
+-
+KinovaTypes.h
+../_HEADERS/KinovaTypes.h
+Kinova.API.EthCommLayerUbuntu.h
+../_HEADERS/Kinova.API.EthCommLayerUbuntu.h
+stdio.h
+-
+
+../_HEADERS/KinovaTypes.h
+
+/home/unknown/Documents/Posdoc/lichie_ws/lichie/Cohoma/Example_TorqueControl/src/Example_TorqueControl.cpp
+iostream
+-
+dlfcn.h
+-
+KinovaTypes.h
+-
+Kinova.API.CommLayerUbuntu.h
+-
+Kinova.API.EthCommandLayerUbuntu.h
+-
+unistd.h
+-
+
